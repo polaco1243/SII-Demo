@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { withUser, schema } from "@sii-demo/db";
 import { encrypt } from "@sii-demo/crypto";
 import { requireUserId } from "@/lib/session";
+import { AutoRefresh } from "@/components/AutoRefresh";
 
 const RUT_EMISOR_RE = /^([\d.]+-[\dkK])\s+(.*)$/;
 
@@ -83,6 +84,35 @@ async function reintentarDescubrimiento(formData: FormData) {
   redirect("/dashboard/credenciales");
 }
 
+async function actualizarClave(formData: FormData) {
+  "use server";
+  const userId = await requireUserId();
+  const credencialId = String(formData.get("credencialId") ?? "");
+  const nuevaClave = String(formData.get("nuevaClave") ?? "");
+
+  if (!nuevaClave) {
+    redirect("/dashboard/credenciales?error=clave_vacia");
+  }
+
+  const claveEncrypted = encrypt(nuevaClave);
+
+  await withUser(userId, async (tx) => {
+    const [credencial] = await tx
+      .select()
+      .from(schema.siiCredentials)
+      .where(and(eq(schema.siiCredentials.id, credencialId), eq(schema.siiCredentials.userId, userId)));
+
+    if (!credencial) throw new Error("Credencial no encontrada");
+
+    await tx
+      .update(schema.siiCredentials)
+      .set({ claveEncrypted, updatedAt: new Date() })
+      .where(and(eq(schema.siiCredentials.userId, userId), eq(schema.siiCredentials.rut, credencial.rut)));
+  });
+
+  redirect("/dashboard/credenciales?ok=clave_actualizada");
+}
+
 async function eliminarCredencial(formData: FormData) {
   "use server";
   const userId = await requireUserId();
@@ -100,16 +130,21 @@ async function eliminarCredencial(formData: FormData) {
 export default async function CredencialesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, ok } = await searchParams;
   const userId = await requireUserId();
   const credenciales = await withUser(userId, (tx) =>
     tx.select().from(schema.siiCredentials).where(eq(schema.siiCredentials.userId, userId)),
   );
 
+  const hayTrabajoEnProceso = credenciales.some(
+    (c) => c.status === "pendiente" || c.status === "descubriendo",
+  );
+
   return (
     <main className="mx-auto mt-12 max-w-lg p-6">
+      <AutoRefresh activo={hayTrabajoEnProceso} />
       <a href="/dashboard" className="text-sm text-[#3282b8]">
         ← Volver
       </a>
@@ -119,6 +154,10 @@ export default async function CredencialesPage({
       {error === "sin_seleccion" && (
         <p className="mb-4 text-sm text-[#f87171]">Selecciona al menos un emisor</p>
       )}
+      {error === "clave_vacia" && <p className="mb-4 text-sm text-[#f87171]">Escribe la nueva clave</p>}
+      {ok === "clave_actualizada" && (
+        <p className="mb-4 text-sm text-[#4ade80]">Clave actualizada correctamente</p>
+      )}
 
       {credenciales.length > 0 && (
         <ul className="mb-8 flex flex-col gap-3">
@@ -127,7 +166,7 @@ export default async function CredencialesPage({
               {(c.status === "pendiente" || c.status === "descubriendo") && (
                 <div>
                   <p className="text-sm">Verificando credenciales con el SII para RUT {c.rut}…</p>
-                  <p className="mt-1 text-xs text-[#3282b8]">Puede tardar hasta 30 segundos. Recarga la página.</p>
+                  <p className="mt-1 text-xs text-[#3282b8]">Puede tardar hasta 30 segundos. Esta página se actualiza sola.</p>
                 </div>
               )}
 
@@ -153,17 +192,35 @@ export default async function CredencialesPage({
               )}
 
               {c.status === "lista" && (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{c.emisorRazonSocial ?? c.emisor}</p>
-                    <p className="text-sm">RUT emisor: {c.emisorRut ?? "—"} (cuenta {c.rut})</p>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{c.emisorRazonSocial ?? c.emisor}</p>
+                      <p className="text-sm">RUT emisor: {c.emisorRut ?? "—"} (cuenta {c.rut})</p>
+                    </div>
+                    <form action={eliminarCredencial}>
+                      <input type="hidden" name="credencialId" value={c.id} />
+                      <button type="submit" className="text-sm text-[#f87171]">
+                        Eliminar
+                      </button>
+                    </form>
                   </div>
-                  <form action={eliminarCredencial}>
-                    <input type="hidden" name="credencialId" value={c.id} />
-                    <button type="submit" className="text-sm text-[#f87171]">
-                      Eliminar
-                    </button>
-                  </form>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm text-[#3282b8]">Cambiar clave</summary>
+                    <form action={actualizarClave} className="mt-2 flex gap-2">
+                      <input type="hidden" name="credencialId" value={c.id} />
+                      <input
+                        name="nuevaClave"
+                        type="password"
+                        placeholder="Nueva clave SII"
+                        required
+                        className="flex-1 rounded-md border border-[#1f3460] bg-[#1a1a2e] px-3 py-1.5 text-sm"
+                      />
+                      <button type="submit" className="rounded-md bg-[#0f4c75] px-3 py-1.5 text-sm hover:bg-[#3282b8]">
+                        Guardar
+                      </button>
+                    </form>
+                  </details>
                 </div>
               )}
 

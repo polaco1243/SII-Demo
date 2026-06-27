@@ -4,12 +4,37 @@ import { parse } from "csv-parse/sync";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
 import { signOut } from "@/auth";
+import { AutoRefresh } from "@/components/AutoRefresh";
 
 interface FilaCsv {
   Nombre: string;
   Monto: string;
   Detalle: string;
   Mail: string;
+}
+
+const MAX_FILAS_CSV = 200;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validarFilas(filas: FilaCsv[]): string | null {
+  if (filas.length === 0) return "el archivo no tiene filas";
+  if (filas.length > MAX_FILAS_CSV) return `máximo ${MAX_FILAS_CSV} filas por archivo (tiene ${filas.length})`;
+
+  for (let i = 0; i < filas.length; i++) {
+    const fila = filas[i];
+    const numFila = i + 2; // +1 por header, +1 por índice 1-based
+
+    if (!fila.Nombre?.trim()) return `fila ${numFila}: falta el Nombre`;
+    if (fila.Nombre.trim().length > 200) return `fila ${numFila}: Nombre muy largo`;
+
+    const monto = Number(fila.Monto);
+    if (!fila.Monto || Number.isNaN(monto)) return `fila ${numFila}: Monto inválido`;
+    if (!Number.isInteger(monto) || monto <= 0) return `fila ${numFila}: Monto debe ser un entero mayor a 0`;
+
+    if (fila.Mail && !EMAIL_RE.test(fila.Mail.trim())) return `fila ${numFila}: Mail con formato inválido`;
+  }
+
+  return null;
 }
 
 async function subirCsv(formData: FormData) {
@@ -27,17 +52,12 @@ async function subirCsv(formData: FormData) {
   try {
     filas = parse(texto, { columns: true, delimiter: ";", trim: true, skip_empty_lines: true });
   } catch {
-    redirect("/dashboard?error=csv_invalido");
+    redirect("/dashboard?error=" + encodeURIComponent("el archivo no se pudo leer como CSV"));
   }
 
-  if (filas.length === 0) {
-    redirect("/dashboard?error=csv_vacio");
-  }
-
-  for (const fila of filas) {
-    if (!fila.Nombre || !fila.Monto || Number.isNaN(Number(fila.Monto))) {
-      redirect("/dashboard?error=csv_invalido");
-    }
+  const errorValidacion = validarFilas(filas);
+  if (errorValidacion) {
+    redirect("/dashboard?error=" + encodeURIComponent(errorValidacion));
   }
 
   await withUser(userId, async (tx) => {
@@ -106,8 +126,11 @@ export default async function DashboardPage({
     return { credenciales, batches };
   });
 
+  const hayTrabajoEnProceso = batches.some((b) => b.status === "pending" || b.status === "running");
+
   return (
     <main className="mx-auto mt-12 max-w-2xl p-6">
+      <AutoRefresh activo={hayTrabajoEnProceso} />
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-xl font-semibold">SII E-Boleta</h1>
         <form
@@ -122,7 +145,12 @@ export default async function DashboardPage({
         </form>
       </div>
 
-      {error && <p className="mb-4 text-sm text-[#f87171]">Revisa el archivo CSV o la credencial seleccionada</p>}
+      {error === "faltan_datos" && (
+        <p className="mb-4 text-sm text-[#f87171]">Selecciona una credencial y un archivo CSV</p>
+      )}
+      {error && error !== "faltan_datos" && (
+        <p className="mb-4 text-sm text-[#f87171]">CSV inválido: {error}</p>
+      )}
 
       <section className="mb-10 rounded-lg border border-[#1f3460] bg-[#16213e] p-6">
         <h2 className="mb-4 font-medium">Nueva emisión por CSV</h2>

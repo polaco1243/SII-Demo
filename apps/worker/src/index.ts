@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and, ne } from "drizzle-orm";
 import { db, schema } from "@sii-demo/db";
 import { decrypt } from "@sii-demo/crypto";
 import { SIIAutomation } from "./automation";
@@ -42,7 +42,10 @@ async function processBatch(batch: typeof schema.batches.$inferSelect) {
     return;
   }
 
-  const filas = await db.select().from(boletas).where(eq(boletas.batchId, batch.id));
+  const filas = await db
+    .select()
+    .from(boletas)
+    .where(and(eq(boletas.batchId, batch.id), ne(boletas.status, "success")));
 
   const clave = decrypt(credencial.claveEncrypted);
   const automation = new SIIAutomation(credencial.rut, clave, DESCARGAS_DIR, true);

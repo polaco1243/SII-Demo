@@ -1,7 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { eq, and } from "drizzle-orm";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
+import { AutoRefresh } from "@/components/AutoRefresh";
 
 const ESTADO_LABEL: Record<string, string> = {
   pending: "Pendiente",
@@ -14,6 +15,34 @@ const ESTADO_COLOR: Record<string, string> = {
   success: "#4ade80",
   failed: "#f87171",
 };
+
+async function reintentarBoleta(formData: FormData) {
+  "use server";
+  const userId = await requireUserId();
+  const boletaId = String(formData.get("boletaId") ?? "");
+  const batchId = String(formData.get("batchId") ?? "");
+
+  await withUser(userId, async (tx) => {
+    const [batch] = await tx
+      .select()
+      .from(schema.batches)
+      .where(and(eq(schema.batches.id, batchId), eq(schema.batches.userId, userId)));
+
+    if (!batch) throw new Error("Batch no encontrado");
+
+    await tx
+      .update(schema.boletas)
+      .set({ status: "pending", errorMessage: null, updatedAt: new Date() })
+      .where(and(eq(schema.boletas.id, boletaId), eq(schema.boletas.batchId, batchId)));
+
+    await tx
+      .update(schema.batches)
+      .set({ status: "pending", errorMessage: null, finishedAt: null })
+      .where(eq(schema.batches.id, batchId));
+  });
+
+  redirect(`/dashboard/batches/${batchId}`);
+}
 
 export default async function BatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -33,8 +62,12 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
 
   if (!batch) notFound();
 
+  const hayTrabajoEnProceso =
+    batch.status === "pending" || batch.status === "running" || boletas.some((b) => b.status === "pending");
+
   return (
     <main className="mx-auto mt-12 max-w-2xl p-6">
+      <AutoRefresh activo={hayTrabajoEnProceso} />
       <a href="/dashboard" className="text-sm text-[#3282b8]">
         ← Volver
       </a>
@@ -61,6 +94,15 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                 <a href={`/api/batches/${batch.id}/pdf/${b.id}`} className="text-[#3282b8]">
                   PDF
                 </a>
+              )}
+              {b.status === "failed" && (
+                <form action={reintentarBoleta}>
+                  <input type="hidden" name="boletaId" value={b.id} />
+                  <input type="hidden" name="batchId" value={batch.id} />
+                  <button type="submit" className="text-[#3282b8]">
+                    Reintentar
+                  </button>
+                </form>
               )}
             </div>
           </li>
