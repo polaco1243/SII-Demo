@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { parse } from "csv-parse/sync";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
 import { validarRut } from "@/lib/rut";
 import { signOut } from "@/auth";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { EmisionesExplorer } from "@/components/EmisionesExplorer";
 
 interface FilaCsv {
   RutContribuyente: string;
@@ -172,22 +173,6 @@ async function subirCsv(formData: FormData) {
   redirect(`/dashboard/batches/${batchId}`);
 }
 
-const ESTADO_LABEL: Record<string, string> = {
-  borrador: "Por confirmar",
-  pending: "Pendiente",
-  running: "Procesando",
-  done: "Completado",
-  failed: "Con errores",
-};
-
-const ESTADO_COLOR: Record<string, string> = {
-  borrador: "#fbbf24",
-  pending: "#eaeaea",
-  running: "#3282b8",
-  done: "#4ade80",
-  failed: "#f87171",
-};
-
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -196,7 +181,7 @@ export default async function DashboardPage({
   const { error } = await searchParams;
   const userId = await requireUserId();
 
-  const { credenciales, batches } = await withUser(userId, async (tx) => {
+  const { credenciales, filas, boletasPorBatch } = await withUser(userId, async (tx) => {
     const credenciales = await tx
       .select()
       .from(schema.siiCredentials)
@@ -208,16 +193,41 @@ export default async function DashboardPage({
         ),
       );
 
-    const batches = await tx
-      .select()
+    const filas = await tx
+      .select({
+        batchId: schema.batches.id,
+        csvFilename: schema.batches.csvFilename,
+        batchStatus: schema.batches.status,
+        createdAt: schema.batches.createdAt,
+        emisorRut: schema.siiCredentials.emisorRut,
+        emisorRazonSocial: schema.siiCredentials.emisorRazonSocial,
+      })
       .from(schema.batches)
+      .innerJoin(schema.siiCredentials, eq(schema.batches.siiCredentialId, schema.siiCredentials.id))
       .where(eq(schema.batches.userId, userId))
       .orderBy(desc(schema.batches.createdAt));
 
-    return { credenciales, batches };
+    const boletasTodas = filas.length
+      ? await tx.select().from(schema.boletas).where(inArray(schema.boletas.batchId, filas.map((f) => f.batchId)))
+      : [];
+
+    const boletasPorBatch = new Map<string, typeof boletasTodas>();
+    for (const b of boletasTodas) {
+      const arr = boletasPorBatch.get(b.batchId) ?? [];
+      arr.push(b);
+      boletasPorBatch.set(b.batchId, arr);
+    }
+
+    return { credenciales, filas, boletasPorBatch };
   });
 
-  const hayTrabajoEnProceso = batches.some((b) => b.status === "pending" || b.status === "running");
+  const archivos = filas.map((f) => ({
+    ...f,
+    createdAt: f.createdAt.toISOString(),
+    boletas: boletasPorBatch.get(f.batchId) ?? [],
+  }));
+
+  const hayTrabajoEnProceso = archivos.some((b) => b.batchStatus === "pending" || b.batchStatus === "running");
 
   return (
     <main className="mx-auto mt-12 max-w-2xl p-6">
@@ -284,19 +294,10 @@ export default async function DashboardPage({
 
       <section>
         <h2 className="mb-4 font-medium">Emisiones</h2>
-        {batches.length === 0 ? (
+        {archivos.length === 0 ? (
           <p className="text-sm">Aún no has subido ningún CSV.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {batches.map((b) => (
-              <li key={b.id} className="rounded-md border border-[#1f3460] bg-[#16213e] p-3">
-                <a href={`/dashboard/batches/${b.id}`} className="flex items-center justify-between">
-                  <span>{b.csvFilename}</span>
-                  <span style={{ color: ESTADO_COLOR[b.status] }}>{ESTADO_LABEL[b.status]}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
+          <EmisionesExplorer archivos={archivos} />
         )}
       </section>
     </main>
