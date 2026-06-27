@@ -120,7 +120,7 @@ async function subirCsv(formData: FormData) {
     redirect("/dashboard?error=" + encodeURIComponent("el archivo no se pudo leer como CSV"));
   }
 
-  await withUser(userId, async (tx) => {
+  const batchId = await withUser(userId, async (tx) => {
     const [credencial] = await tx
       .select()
       .from(schema.siiCredentials)
@@ -137,7 +137,7 @@ async function subirCsv(formData: FormData) {
 
     const [batch] = await tx
       .insert(schema.batches)
-      .values({ userId, siiCredentialId, csvFilename: archivo.name })
+      .values({ userId, siiCredentialId, csvFilename: archivo.name, status: "borrador" })
       .returning();
 
     await tx.insert(schema.boletas).values(
@@ -165,12 +165,15 @@ async function subirCsv(formData: FormData) {
         };
       }),
     );
+
+    return batch.id;
   });
 
-  redirect("/dashboard");
+  redirect(`/dashboard/batches/${batchId}`);
 }
 
 const ESTADO_LABEL: Record<string, string> = {
+  borrador: "Por confirmar",
   pending: "Pendiente",
   running: "Procesando",
   done: "Completado",
@@ -178,6 +181,7 @@ const ESTADO_LABEL: Record<string, string> = {
 };
 
 const ESTADO_COLOR: Record<string, string> = {
+  borrador: "#fbbf24",
   pending: "#eaeaea",
   running: "#3282b8",
   done: "#4ade80",

@@ -1,7 +1,7 @@
 import { pgTable, uuid, text, integer, timestamp, pgEnum, jsonb, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-export const batchStatus = pgEnum("batch_status", ["pending", "running", "done", "failed"]);
+export const batchStatus = pgEnum("batch_status", ["borrador", "pending", "running", "done", "failed"]);
 export const boletaStatus = pgEnum("boleta_status", ["pending", "success", "failed"]);
 export const credentialStatus = pgEnum("credential_status", [
   "pendiente",

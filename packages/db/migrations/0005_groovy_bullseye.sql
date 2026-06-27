@@ -1,0 +1,1 @@
+ALTER TYPE "public"."batch_status" ADD VALUE 'borrador' BEFORE 'pending';
