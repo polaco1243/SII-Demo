@@ -30,10 +30,7 @@ export function DropdownMenu({ children }: { children: React.ReactNode }) {
         ⋮
       </button>
       {abierto && (
-        <div
-          className="absolute right-0 z-10 mt-1 min-w-[160px] rounded-md border border-[#1f3460] bg-[#16213e] py-1 shadow-lg"
-          onClick={() => setAbierto(false)}
-        >
+        <div className="absolute right-0 z-10 mt-1 min-w-[160px] rounded-md border border-[#1f3460] bg-[#16213e] py-1 shadow-lg">
           {children}
         </div>
       )}

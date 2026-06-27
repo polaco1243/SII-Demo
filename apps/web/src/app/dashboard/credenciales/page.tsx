@@ -4,9 +4,11 @@ import { eq, and } from "drizzle-orm";
 import { withUser, schema } from "@sii-demo/db";
 import { encrypt } from "@sii-demo/crypto";
 import { requireUserId } from "@/lib/session";
+import { validarRut } from "@/lib/rut";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { Spinner } from "@/components/Spinner";
 import { DropdownMenu } from "@/components/DropdownMenu";
+import { DismissibleBanner } from "@/components/DismissibleBanner";
 
 const RUT_EMISOR_RE = /^([\d.]+-[\dkK])\s+(.*)$/;
 
@@ -24,6 +26,10 @@ async function agregarCredencial(formData: FormData) {
 
   if (!rut || !clave) {
     redirect("/dashboard/credenciales?error=campos");
+  }
+
+  if (!validarRut(rut)) {
+    redirect("/dashboard/credenciales?error=rut_invalido");
   }
 
   const claveEncrypted = encrypt(clave);
@@ -116,7 +122,8 @@ async function eliminarCredencial(formData: FormData) {
 
   await withUser(userId, async (tx) => {
     await tx
-      .delete(schema.siiCredentials)
+      .update(schema.siiCredentials)
+      .set({ activa: false, updatedAt: new Date() })
       .where(and(eq(schema.siiCredentials.id, credencialId), eq(schema.siiCredentials.userId, userId)));
   });
 
@@ -130,7 +137,8 @@ async function eliminarPorRut(formData: FormData) {
 
   await withUser(userId, async (tx) => {
     await tx
-      .delete(schema.siiCredentials)
+      .update(schema.siiCredentials)
+      .set({ activa: false, updatedAt: new Date() })
       .where(and(eq(schema.siiCredentials.userId, userId), eq(schema.siiCredentials.rut, rut)));
   });
 
@@ -145,7 +153,10 @@ export default async function CredencialesPage({
   const { error, ok, editando } = await searchParams;
   const userId = await requireUserId();
   const credenciales = await withUser(userId, (tx) =>
-    tx.select().from(schema.siiCredentials).where(eq(schema.siiCredentials.userId, userId)),
+    tx
+      .select()
+      .from(schema.siiCredentials)
+      .where(and(eq(schema.siiCredentials.userId, userId), eq(schema.siiCredentials.activa, true))),
   );
 
   const hayTrabajoEnProceso = credenciales.some(
@@ -168,6 +179,9 @@ export default async function CredencialesPage({
       <h1 className="mb-6 mt-2 text-xl font-semibold">Credenciales SII</h1>
 
       {error === "campos" && <p className="mb-4 text-sm text-[#f87171]">Completa RUT y clave</p>}
+      {error === "rut_invalido" && (
+        <p className="mb-4 text-sm text-[#f87171]">El RUT ingresado no es válido (revisa el dígito verificador)</p>
+      )}
       {error === "sin_seleccion" && (
         <p className="mb-4 text-sm text-[#f87171]">Selecciona al menos un emisor</p>
       )}
@@ -186,6 +200,10 @@ export default async function CredencialesPage({
               const conError = filas.filter((c) => c.status === "error");
               const listas = filas.filter((c) => c.status === "lista");
               const editandoEsteRut = editando === rut;
+              const totalDetectados = porConfirmar.reduce(
+                (acc, c) => acc + (c.emisoresDisponibles?.length ?? 0),
+                0,
+              );
 
               return (
                 <li key={rut} className="rounded-md border border-[#1f3460] bg-[#16213e]">
@@ -195,10 +213,12 @@ export default async function CredencialesPage({
                         {cargando && <Spinner />}
                         <span>
                           <p className="font-medium">RUT {rut}</p>
-                          <p className="text-sm text-[#a0aec0]">
-                            {listas.length} razón{listas.length === 1 ? "" : "es"} social
-                            {listas.length === 1 ? "" : "es"}
-                          </p>
+                          {!cargando && (
+                            <p className="text-sm text-[#a0aec0]">
+                              {listas.length} razón{listas.length === 1 ? "" : "es"} social
+                              {listas.length === 1 ? "" : "es"}
+                            </p>
+                          )}
                         </span>
                       </span>
                       <DropdownMenu>
@@ -238,6 +258,12 @@ export default async function CredencialesPage({
                           >
                             Guardar
                           </button>
+                          <Link
+                            href="/dashboard/credenciales"
+                            className="flex items-center rounded-md px-3 py-1.5 text-sm text-[#a0aec0] hover:bg-[#1f3460]"
+                          >
+                            Cancelar
+                          </Link>
                         </form>
                       )}
 
@@ -246,6 +272,13 @@ export default async function CredencialesPage({
                           <Spinner />
                           <span>Verificando con el SII… puede tardar hasta 30 segundos.</span>
                         </div>
+                      )}
+
+                      {porConfirmar.length > 0 && (
+                        <DismissibleBanner>
+                          Se encontraron {totalDetectados} razón{totalDetectados === 1 ? "" : "es"} social
+                          {totalDetectados === 1 ? "" : "es"} disponible{totalDetectados === 1 ? "" : "s"}
+                        </DismissibleBanner>
                       )}
 
                       {porConfirmar.map((c) => (

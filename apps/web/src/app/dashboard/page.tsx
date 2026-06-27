@@ -115,7 +115,13 @@ export default async function DashboardPage({
     const credenciales = await tx
       .select()
       .from(schema.siiCredentials)
-      .where(and(eq(schema.siiCredentials.userId, userId), eq(schema.siiCredentials.status, "lista")));
+      .where(
+        and(
+          eq(schema.siiCredentials.userId, userId),
+          eq(schema.siiCredentials.status, "lista"),
+          eq(schema.siiCredentials.activa, true),
+        ),
+      );
 
     const batches = await tx
       .select()

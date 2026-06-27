@@ -1,0 +1,1 @@
+ALTER TABLE "sii_credentials" ADD COLUMN "activa" boolean DEFAULT true NOT NULL;

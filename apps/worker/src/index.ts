@@ -84,7 +84,7 @@ async function claimNextCredentialDiscovery() {
     const rows = await tx
       .select()
       .from(siiCredentials)
-      .where(eq(siiCredentials.status, "pendiente"))
+      .where(and(eq(siiCredentials.status, "pendiente"), eq(siiCredentials.activa, true)))
       .orderBy(asc(siiCredentials.createdAt))
       .limit(1)
       .for("update", { skipLocked: true });

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, timestamp, pgEnum, jsonb, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const batchStatus = pgEnum("batch_status", ["pending", "running", "done", "failed"]);
@@ -29,6 +29,7 @@ export const siiCredentials = pgTable("sii_credentials", {
   emisoresDisponibles: jsonb("emisores_disponibles").$type<string[]>(),
   status: credentialStatus("status").notNull().default("pendiente"),
   errorMessage: text("error_message"),
+  activa: boolean("activa").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
