@@ -34,10 +34,10 @@ async function processBatch(batch: typeof schema.batches.$inferSelect) {
     .where(eq(siiCredentials.id, batch.siiCredentialId))
     .limit(1);
 
-  if (!credencial) {
+  if (!credencial || !credencial.emisor) {
     await db
       .update(batches)
-      .set({ status: "failed", errorMessage: "Credencial SII no encontrada", finishedAt: new Date() })
+      .set({ status: "failed", errorMessage: "Credencial SII sin emisor confirmado", finishedAt: new Date() })
       .where(eq(batches.id, batch.id));
     return;
   }
@@ -45,9 +45,10 @@ async function processBatch(batch: typeof schema.batches.$inferSelect) {
   const filas = await db.select().from(boletas).where(eq(boletas.batchId, batch.id));
 
   const clave = decrypt(credencial.claveEncrypted);
-  const automation = new SIIAutomation(credencial.rut, clave, credencial.emisor, DESCARGAS_DIR, true);
+  const automation = new SIIAutomation(credencial.rut, clave, DESCARGAS_DIR, true);
 
   const resultados = await automation.runBatch(
+    credencial.emisor,
     filas.map((f) => ({ nombre: f.nombre, monto: f.monto, detalle: f.detalle, email: f.email })),
   );
 
@@ -75,15 +76,74 @@ async function processBatch(batch: typeof schema.batches.$inferSelect) {
     .where(eq(batches.id, batch.id));
 }
 
+async function claimNextCredentialDiscovery() {
+  return db.transaction(async (tx) => {
+    const rows = await tx
+      .select()
+      .from(siiCredentials)
+      .where(eq(siiCredentials.status, "pendiente"))
+      .orderBy(asc(siiCredentials.createdAt))
+      .limit(1)
+      .for("update", { skipLocked: true });
+
+    const credencial = rows[0];
+    if (!credencial) return null;
+
+    await tx.update(siiCredentials).set({ status: "descubriendo" }).where(eq(siiCredentials.id, credencial.id));
+    return credencial;
+  });
+}
+
+async function processCredentialDiscovery(credencial: typeof schema.siiCredentials.$inferSelect) {
+  const clave = decrypt(credencial.claveEncrypted);
+  const automation = new SIIAutomation(credencial.rut, clave, DESCARGAS_DIR, true);
+
+  try {
+    const opciones = await automation.descubrirEmisores();
+    if (opciones.length === 0) {
+      await db
+        .update(siiCredentials)
+        .set({ status: "error", errorMessage: "No se encontraron emisores asociados a este RUT", updatedAt: new Date() })
+        .where(eq(siiCredentials.id, credencial.id));
+      return;
+    }
+    await db
+      .update(siiCredentials)
+      .set({ status: "pendiente_seleccion", emisoresDisponibles: opciones, updatedAt: new Date() })
+      .where(eq(siiCredentials.id, credencial.id));
+  } catch (err) {
+    await db
+      .update(siiCredentials)
+      .set({
+        status: "error",
+        errorMessage: err instanceof Error ? err.message : String(err),
+        updatedAt: new Date(),
+      })
+      .where(eq(siiCredentials.id, credencial.id));
+  }
+}
+
 async function tick() {
   try {
     const batch = await claimNextBatch();
-    if (!batch) return;
-    console.log(`Procesando batch ${batch.id}`);
-    await processBatch(batch);
-    console.log(`Batch ${batch.id} terminado`);
+    if (batch) {
+      console.log(`Procesando batch ${batch.id}`);
+      await processBatch(batch);
+      console.log(`Batch ${batch.id} terminado`);
+    }
   } catch (err) {
     console.error("Error procesando batch:", err);
+  }
+
+  try {
+    const credencial = await claimNextCredentialDiscovery();
+    if (credencial) {
+      console.log(`Descubriendo emisores para credencial ${credencial.id}`);
+      await processCredentialDiscovery(credencial);
+      console.log(`Credencial ${credencial.id} procesada`);
+    }
+  } catch (err) {
+    console.error("Error descubriendo emisores:", err);
   }
 }
 

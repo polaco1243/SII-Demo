@@ -31,7 +31,6 @@ export class SIIAutomation {
   constructor(
     private readonly rut: string,
     private readonly clave: string,
-    private readonly emisor: string,
     private readonly descargasDir: string,
     private readonly headless = true,
   ) {}
@@ -52,17 +51,43 @@ export class SIIAutomation {
     return this.page;
   }
 
-  async login(): Promise<void> {
+  private async ingresarCredenciales(): Promise<void> {
     await this.p.fill("#inputRut", this.rut);
     await this.p.fill("#inputPass", this.clave);
     await this.p.click("#bt_ingresar");
     await this.p.waitForLoadState("networkidle");
     await sleep(1000);
+  }
 
+  private async abrirSelectorEmisorYListar(): Promise<string[]> {
     await this.p.locator(".v-select").first().click();
     await sleep(500);
-    await this.p.click(`text=${this.emisor}`);
+    const opciones = await this.p.evaluate(() => {
+      const items = Array.from(document.querySelectorAll('.v-select-list .v-list-item, [role="listbox"] [role="option"]'));
+      return items.map((item) => (item.textContent ?? "").trim()).filter(Boolean);
+    });
+    return Array.from(new Set(opciones));
+  }
+
+  private async seleccionarEmisor(emisorExacto: string): Promise<void> {
+    await this.p.click(`text=${emisorExacto}`);
     await sleep(1000);
+  }
+
+  async login(emisor: string): Promise<void> {
+    await this.ingresarCredenciales();
+    await this.abrirSelectorEmisorYListar();
+    await this.seleccionarEmisor(emisor);
+  }
+
+  async descubrirEmisores(): Promise<string[]> {
+    await this.start();
+    try {
+      await this.ingresarCredenciales();
+      return await this.abrirSelectorEmisorYListar();
+    } finally {
+      await this.stop();
+    }
   }
 
   private async clickEmitirInicial(): Promise<void> {
@@ -198,10 +223,10 @@ export class SIIAutomation {
     return destino;
   }
 
-  async runBatch(boletas: BoletaInput[]): Promise<BoletaResultado[]> {
+  async runBatch(emisor: string, boletas: BoletaInput[]): Promise<BoletaResultado[]> {
     await this.start();
     try {
-      await this.login();
+      await this.login(emisor);
       const resultados: BoletaResultado[] = [];
       for (const boleta of boletas) {
         try {

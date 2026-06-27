@@ -1,8 +1,15 @@
-import { pgTable, uuid, text, integer, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const batchStatus = pgEnum("batch_status", ["pending", "running", "done", "failed"]);
 export const boletaStatus = pgEnum("boleta_status", ["pending", "success", "failed"]);
+export const credentialStatus = pgEnum("credential_status", [
+  "pendiente",
+  "descubriendo",
+  "pendiente_seleccion",
+  "lista",
+  "error",
+]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -16,7 +23,12 @@ export const siiCredentials = pgTable("sii_credentials", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   rut: text("rut").notNull(),
   claveEncrypted: text("clave_encrypted").notNull(),
-  emisor: text("emisor").notNull(),
+  emisor: text("emisor"),
+  emisorRut: text("emisor_rut"),
+  emisorRazonSocial: text("emisor_razon_social"),
+  emisoresDisponibles: jsonb("emisores_disponibles").$type<string[]>(),
+  status: credentialStatus("status").notNull().default("pendiente"),
+  errorMessage: text("error_message"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

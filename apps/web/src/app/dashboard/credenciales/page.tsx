@@ -1,27 +1,100 @@
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { withUser, schema } from "@sii-demo/db";
 import { encrypt } from "@sii-demo/crypto";
 import { requireUserId } from "@/lib/session";
 
-async function guardarCredencial(formData: FormData) {
+const RUT_EMISOR_RE = /^([\d.]+-[\dkK])\s+(.*)$/;
+
+function parseEmisor(texto: string): { rut: string; razonSocial: string } {
+  const match = texto.match(RUT_EMISOR_RE);
+  if (match) return { rut: match[1], razonSocial: match[2].trim() };
+  return { rut: "", razonSocial: texto };
+}
+
+async function agregarCredencial(formData: FormData) {
   "use server";
   const userId = await requireUserId();
   const rut = String(formData.get("rut") ?? "").trim();
   const clave = String(formData.get("clave") ?? "");
-  const emisor = String(formData.get("emisor") ?? "").trim();
 
-  if (!rut || !clave || !emisor) {
-    redirect("/dashboard/credenciales?error=1");
+  if (!rut || !clave) {
+    redirect("/dashboard/credenciales?error=campos");
   }
 
   const claveEncrypted = encrypt(clave);
 
   await withUser(userId, async (tx) => {
-    await tx.insert(schema.siiCredentials).values({ userId, rut, claveEncrypted, emisor });
+    await tx.insert(schema.siiCredentials).values({ userId, rut, claveEncrypted, status: "pendiente" });
   });
 
-  redirect("/dashboard");
+  redirect("/dashboard/credenciales");
+}
+
+async function confirmarEmisores(formData: FormData) {
+  "use server";
+  const userId = await requireUserId();
+  const credencialId = String(formData.get("credencialId") ?? "");
+  const seleccionados = formData.getAll("emisor").map(String);
+
+  if (!credencialId || seleccionados.length === 0) {
+    redirect("/dashboard/credenciales?error=sin_seleccion");
+  }
+
+  await withUser(userId, async (tx) => {
+    const [credencial] = await tx
+      .select()
+      .from(schema.siiCredentials)
+      .where(and(eq(schema.siiCredentials.id, credencialId), eq(schema.siiCredentials.userId, userId)));
+
+    if (!credencial) throw new Error("Credencial no encontrada");
+
+    for (const textoExacto of seleccionados) {
+      const { rut: emisorRut, razonSocial } = parseEmisor(textoExacto);
+      await tx.insert(schema.siiCredentials).values({
+        userId,
+        rut: credencial.rut,
+        claveEncrypted: credencial.claveEncrypted,
+        emisor: textoExacto,
+        emisorRut,
+        emisorRazonSocial: razonSocial,
+        status: "lista",
+      });
+    }
+
+    await tx.delete(schema.siiCredentials).where(eq(schema.siiCredentials.id, credencialId));
+  });
+
+  redirect("/dashboard/credenciales");
+}
+
+async function reintentarDescubrimiento(formData: FormData) {
+  "use server";
+  const userId = await requireUserId();
+  const credencialId = String(formData.get("credencialId") ?? "");
+
+  await withUser(userId, async (tx) => {
+    await tx
+      .update(schema.siiCredentials)
+      .set({ status: "pendiente", errorMessage: null, updatedAt: new Date() })
+      .where(and(eq(schema.siiCredentials.id, credencialId), eq(schema.siiCredentials.userId, userId)));
+  });
+
+  redirect("/dashboard/credenciales");
+}
+
+async function eliminarCredencial(formData: FormData) {
+  "use server";
+  const userId = await requireUserId();
+  const credencialId = String(formData.get("credencialId") ?? "");
+
+  await withUser(userId, async (tx) => {
+    await tx
+      .delete(schema.siiCredentials)
+      .where(and(eq(schema.siiCredentials.id, credencialId), eq(schema.siiCredentials.userId, userId)));
+  });
+
+  redirect("/dashboard/credenciales");
 }
 
 export default async function CredencialesPage({
@@ -37,21 +110,89 @@ export default async function CredencialesPage({
 
   return (
     <main className="mx-auto mt-12 max-w-lg p-6">
-      <h1 className="mb-6 text-xl font-semibold">Credenciales SII</h1>
+      <a href="/dashboard" className="text-sm text-[#3282b8]">
+        ← Volver
+      </a>
+      <h1 className="mb-6 mt-2 text-xl font-semibold">Credenciales SII</h1>
+
+      {error === "campos" && <p className="mb-4 text-sm text-[#f87171]">Completa RUT y clave</p>}
+      {error === "sin_seleccion" && (
+        <p className="mb-4 text-sm text-[#f87171]">Selecciona al menos un emisor</p>
+      )}
 
       {credenciales.length > 0 && (
-        <ul className="mb-8 flex flex-col gap-2">
+        <ul className="mb-8 flex flex-col gap-3">
           {credenciales.map((c) => (
-            <li key={c.id} className="rounded-md border border-[#1f3460] bg-[#16213e] p-3">
-              <span className="font-medium">{c.emisor}</span> — RUT {c.rut}
+            <li key={c.id} className="rounded-md border border-[#1f3460] bg-[#16213e] p-4">
+              {(c.status === "pendiente" || c.status === "descubriendo") && (
+                <div>
+                  <p className="text-sm">Verificando credenciales con el SII para RUT {c.rut}…</p>
+                  <p className="mt-1 text-xs text-[#3282b8]">Puede tardar hasta 30 segundos. Recarga la página.</p>
+                </div>
+              )}
+
+              {c.status === "pendiente_seleccion" && c.emisoresDisponibles && (
+                <form action={confirmarEmisores}>
+                  <input type="hidden" name="credencialId" value={c.id} />
+                  <p className="mb-2 text-sm">RUT {c.rut} — elige los emisores que vas a usar:</p>
+                  <div className="flex flex-col gap-2">
+                    {c.emisoresDisponibles.map((texto) => {
+                      const { razonSocial } = parseEmisor(texto);
+                      return (
+                        <label key={texto} className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" name="emisor" value={texto} />
+                          {razonSocial}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <button type="submit" className="mt-3 rounded-md bg-[#0f4c75] px-3 py-2 text-sm hover:bg-[#3282b8]">
+                    Confirmar selección
+                  </button>
+                </form>
+              )}
+
+              {c.status === "lista" && (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{c.emisorRazonSocial ?? c.emisor}</p>
+                    <p className="text-sm">RUT emisor: {c.emisorRut ?? "—"} (cuenta {c.rut})</p>
+                  </div>
+                  <form action={eliminarCredencial}>
+                    <input type="hidden" name="credencialId" value={c.id} />
+                    <button type="submit" className="text-sm text-[#f87171]">
+                      Eliminar
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {c.status === "error" && (
+                <div>
+                  <p className="text-sm text-[#f87171]">RUT {c.rut}: {c.errorMessage ?? "Error desconocido"}</p>
+                  <div className="mt-2 flex gap-3">
+                    <form action={reintentarDescubrimiento}>
+                      <input type="hidden" name="credencialId" value={c.id} />
+                      <button type="submit" className="text-sm text-[#3282b8]">
+                        Reintentar
+                      </button>
+                    </form>
+                    <form action={eliminarCredencial}>
+                      <input type="hidden" name="credencialId" value={c.id} />
+                      <button type="submit" className="text-sm text-[#f87171]">
+                        Eliminar
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              )}
             </li>
           ))}
         </ul>
       )}
 
-      {error && <p className="mb-4 text-sm text-[#f87171]">Completa todos los campos</p>}
-
-      <form action={guardarCredencial} className="flex flex-col gap-4">
+      <h2 className="mb-3 font-medium">Agregar credencial SII</h2>
+      <form action={agregarCredencial} className="flex flex-col gap-4">
         <input
           name="rut"
           placeholder="RUT (ej. 12345678-9)"
@@ -65,18 +206,12 @@ export default async function CredencialesPage({
           required
           className="rounded-md border border-[#1f3460] bg-[#16213e] px-3 py-2"
         />
-        <input
-          name="emisor"
-          placeholder="Nombre exacto del emisor en el portal"
-          required
-          className="rounded-md border border-[#1f3460] bg-[#16213e] px-3 py-2"
-        />
         <button type="submit" className="rounded-md bg-[#0f4c75] px-3 py-2 hover:bg-[#3282b8]">
-          Guardar credencial
+          Verificar credencial
         </button>
       </form>
       <p className="mt-4 text-sm">
-        La clave se cifra antes de guardarse y nunca se vuelve a mostrar.
+        La clave se cifra antes de guardarse. Tras verificarla, vas a elegir con qué emisor(es) emitir.
       </p>
     </main>
   );
