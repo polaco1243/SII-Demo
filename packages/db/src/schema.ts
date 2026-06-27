@@ -10,6 +10,8 @@ export const credentialStatus = pgEnum("credential_status", [
   "lista",
   "error",
 ]);
+export const tipoBoletaEnum = pgEnum("tipo_boleta", ["exenta", "afecta"]);
+export const metodoPagoEnum = pgEnum("metodo_pago", ["debito", "credito", "efectivo", "otro"]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -48,9 +50,26 @@ export const batches = pgTable("batches", {
 export const boletas = pgTable("boletas", {
   id: uuid("id").primaryKey().defaultRandom(),
   batchId: uuid("batch_id").notNull().references(() => batches.id, { onDelete: "cascade" }),
+
+  rutContribuyente: text("rut_contribuyente").notNull(),
+  nombreCliente: text("nombre_cliente").notNull(),
+  rutCliente1: text("rut_cliente1").notNull(),
+
   nombre: text("nombre").notNull(),
   monto: integer("monto").notNull(),
-  detalle: text("detalle").notNull(),
+  tipoBoleta: tipoBoletaEnum("tipo_boleta").notNull(),
+  metodoPago: metodoPagoEnum("metodo_pago").notNull(),
+
+  conReceptor: boolean("con_receptor").notNull().default(false),
+  receptorRut: text("receptor_rut"),
+  receptorNombre: text("receptor_nombre"),
+  receptorDireccion: text("receptor_direccion"),
+  receptorEmail: text("receptor_email"),
+  receptorTelefono: text("receptor_telefono"),
+
+  conDetalle: boolean("con_detalle").notNull().default(false),
+  detalle: text("detalle"),
+
   email: text("email"),
   status: boletaStatus("status").notNull().default("pending"),
   pdfPath: text("pdf_path"),

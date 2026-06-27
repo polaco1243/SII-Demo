@@ -3,20 +3,43 @@ import { eq, desc, and } from "drizzle-orm";
 import { parse } from "csv-parse/sync";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
+import { validarRut } from "@/lib/rut";
 import { signOut } from "@/auth";
 import { AutoRefresh } from "@/components/AutoRefresh";
 
 interface FilaCsv {
+  RutContribuyente: string;
+  NombreCliente: string;
+  RutCliente1: string;
   Nombre: string;
   Monto: string;
-  Detalle: string;
-  Mail: string;
+  TipoBoleta: string;
+  MetodoPago: string;
+  Receptor: string;
+  RutReceptor?: string;
+  NombreReceptor?: string;
+  DireccionReceptor?: string;
+  EmailReceptor?: string;
+  TelefonoReceptor?: string;
+  ConDetalle: string;
+  Detalle?: string;
+  Mail?: string;
 }
 
 const MAX_FILAS_CSV = 200;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const TELEFONO_RE = /^[\d+\s()-]+$/;
+const TIPOS_BOLETA = ["exenta", "afecta"] as const;
+const METODOS_PAGO = ["debito", "credito", "efectivo", "otro"] as const;
 
-function validarFilas(filas: FilaCsv[]): string | null {
+function esSiNo(valor: string | undefined): boolean | null {
+  const v = (valor ?? "").trim().toUpperCase();
+  if (v === "SI") return true;
+  if (v === "NO") return false;
+  return null;
+}
+
+function validarFilas(filas: FilaCsv[], emisorRutEsperado: string): string | null {
   if (filas.length === 0) return "el archivo no tiene filas";
   if (filas.length > MAX_FILAS_CSV) return `máximo ${MAX_FILAS_CSV} filas por archivo (tiene ${filas.length})`;
 
@@ -24,12 +47,54 @@ function validarFilas(filas: FilaCsv[]): string | null {
     const fila = filas[i];
     const numFila = i + 2; // +1 por header, +1 por índice 1-based
 
+    if (!fila.RutContribuyente || !validarRut(fila.RutContribuyente)) {
+      return `fila ${numFila}: RutContribuyente inválido`;
+    }
+    if (fila.RutContribuyente.trim() !== emisorRutEsperado.trim()) {
+      return `fila ${numFila}: RutContribuyente (${fila.RutContribuyente}) no coincide con el RUT del emisor seleccionado (${emisorRutEsperado})`;
+    }
+
+    if (!fila.NombreCliente || fila.NombreCliente.trim().length < 4) {
+      return `fila ${numFila}: NombreCliente debe tener al menos 4 caracteres`;
+    }
+    if (!fila.RutCliente1 || !validarRut(fila.RutCliente1)) {
+      return `fila ${numFila}: RutCliente1 inválido`;
+    }
+
     if (!fila.Nombre?.trim()) return `fila ${numFila}: falta el Nombre`;
     if (fila.Nombre.trim().length > 200) return `fila ${numFila}: Nombre muy largo`;
 
     const monto = Number(fila.Monto);
     if (!fila.Monto || Number.isNaN(monto)) return `fila ${numFila}: Monto inválido`;
     if (!Number.isInteger(monto) || monto <= 0) return `fila ${numFila}: Monto debe ser un entero mayor a 0`;
+
+    const tipoBoleta = fila.TipoBoleta?.trim().toLowerCase();
+    if (!TIPOS_BOLETA.includes(tipoBoleta as (typeof TIPOS_BOLETA)[number])) {
+      return `fila ${numFila}: TipoBoleta debe ser "exenta" o "afecta"`;
+    }
+
+    const metodoPago = fila.MetodoPago?.trim().toLowerCase();
+    if (!METODOS_PAGO.includes(metodoPago as (typeof METODOS_PAGO)[number])) {
+      return `fila ${numFila}: MetodoPago debe ser debito, credito, efectivo u otro`;
+    }
+
+    const conReceptor = esSiNo(fila.Receptor);
+    if (conReceptor === null) return `fila ${numFila}: Receptor debe ser SI o NO`;
+    if (conReceptor) {
+      if (!fila.RutReceptor || !validarRut(fila.RutReceptor)) return `fila ${numFila}: RutReceptor inválido`;
+      if (!fila.NombreReceptor || fila.NombreReceptor.trim().length < 4)
+        return `fila ${numFila}: NombreReceptor debe tener al menos 4 caracteres`;
+      if (!fila.DireccionReceptor || fila.DireccionReceptor.trim().length < 5)
+        return `fila ${numFila}: DireccionReceptor debe tener al menos 5 caracteres`;
+      if (!fila.EmailReceptor || !EMAIL_RE.test(fila.EmailReceptor.trim()))
+        return `fila ${numFila}: EmailReceptor con formato inválido`;
+      if (!fila.TelefonoReceptor || !TELEFONO_RE.test(fila.TelefonoReceptor.trim()))
+        return `fila ${numFila}: TelefonoReceptor solo debe contener números`;
+    }
+
+    const conDetalle = esSiNo(fila.ConDetalle);
+    if (conDetalle === null) return `fila ${numFila}: ConDetalle debe ser SI o NO`;
+    if (conDetalle && !fila.Detalle?.trim()) return `fila ${numFila}: Detalle es obligatorio cuando ConDetalle es SI`;
 
     if (fila.Mail && !EMAIL_RE.test(fila.Mail.trim())) return `fila ${numFila}: Mail con formato inválido`;
   }
@@ -55,11 +120,6 @@ async function subirCsv(formData: FormData) {
     redirect("/dashboard?error=" + encodeURIComponent("el archivo no se pudo leer como CSV"));
   }
 
-  const errorValidacion = validarFilas(filas);
-  if (errorValidacion) {
-    redirect("/dashboard?error=" + encodeURIComponent(errorValidacion));
-  }
-
   await withUser(userId, async (tx) => {
     const [credencial] = await tx
       .select()
@@ -70,19 +130,40 @@ async function subirCsv(formData: FormData) {
       throw new Error("Credencial no encontrada");
     }
 
+    const errorValidacion = validarFilas(filas, credencial.emisorRut ?? "");
+    if (errorValidacion) {
+      redirect("/dashboard?error=" + encodeURIComponent(errorValidacion));
+    }
+
     const [batch] = await tx
       .insert(schema.batches)
       .values({ userId, siiCredentialId, csvFilename: archivo.name })
       .returning();
 
     await tx.insert(schema.boletas).values(
-      filas.map((f) => ({
-        batchId: batch.id,
-        nombre: f.Nombre,
-        monto: Math.round(Number(f.Monto)),
-        detalle: f.Detalle ?? "",
-        email: f.Mail || null,
-      })),
+      filas.map((f) => {
+        const conReceptor = esSiNo(f.Receptor) ?? false;
+        const conDetalle = esSiNo(f.ConDetalle) ?? false;
+        return {
+          batchId: batch.id,
+          rutContribuyente: f.RutContribuyente.trim(),
+          nombreCliente: f.NombreCliente.trim(),
+          rutCliente1: f.RutCliente1.trim(),
+          nombre: f.Nombre.trim(),
+          monto: Math.round(Number(f.Monto)),
+          tipoBoleta: f.TipoBoleta.trim().toLowerCase() as (typeof TIPOS_BOLETA)[number],
+          metodoPago: f.MetodoPago.trim().toLowerCase() as (typeof METODOS_PAGO)[number],
+          conReceptor,
+          receptorRut: conReceptor ? f.RutReceptor?.trim() : null,
+          receptorNombre: conReceptor ? f.NombreReceptor?.trim() : null,
+          receptorDireccion: conReceptor ? f.DireccionReceptor?.trim() : null,
+          receptorEmail: conReceptor ? f.EmailReceptor?.trim() : null,
+          receptorTelefono: conReceptor ? f.TelefonoReceptor?.trim() : null,
+          conDetalle,
+          detalle: conDetalle ? f.Detalle?.trim() : null,
+          email: f.Mail?.trim() || null,
+        };
+      }),
     );
   });
 

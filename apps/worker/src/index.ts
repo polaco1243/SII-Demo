@@ -52,7 +52,21 @@ async function processBatch(batch: typeof schema.batches.$inferSelect) {
 
   const resultados = await automation.runBatch(
     credencial.emisor,
-    filas.map((f) => ({ nombre: f.nombre, monto: f.monto, detalle: f.detalle, email: f.email })),
+    filas.map((f) => ({
+      nombre: f.nombre,
+      monto: f.monto,
+      tipoBoleta: f.tipoBoleta,
+      metodoPago: f.metodoPago,
+      conReceptor: f.conReceptor,
+      receptorRut: f.receptorRut,
+      receptorNombre: f.receptorNombre,
+      receptorDireccion: f.receptorDireccion,
+      receptorEmail: f.receptorEmail,
+      receptorTelefono: f.receptorTelefono,
+      conDetalle: f.conDetalle,
+      detalle: f.detalle,
+      email: f.email,
+    })),
   );
 
   let huboFallo = false;

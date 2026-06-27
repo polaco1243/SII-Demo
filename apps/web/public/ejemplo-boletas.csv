@@ -1,3 +1,3 @@
-Nombre;Monto;Detalle;Mail
-Cliente Demo Uno;10000;Servicio de prueba 1;demo1@email.com
-Cliente Demo Dos;25000;Servicio de prueba 2;demo2@email.com
+RutContribuyente;NombreCliente;RutCliente1;Nombre;Monto;TipoBoleta;MetodoPago;Receptor;RutReceptor;NombreReceptor;DireccionReceptor;EmailReceptor;TelefonoReceptor;ConDetalle;Detalle;Mail
+77.227.081-K;Cliente Demo Uno;12345678-5;Cliente Demo Uno;10000;afecta;efectivo;NO;;;;;;NO;;demo1@email.com
+77.227.081-K;Cliente Demo Dos;12345678-5;Cliente Demo Dos;25000;exenta;debito;SI;9876543-3;Receptor Demo;Av. Siempre Viva 123;receptor@email.com;+56912345678;SI;Servicio de prueba con detalle;demo2@email.com

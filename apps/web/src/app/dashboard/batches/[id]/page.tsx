@@ -10,6 +10,18 @@ const ESTADO_LABEL: Record<string, string> = {
   failed: "Falló",
 };
 
+const TIPO_BOLETA_LABEL: Record<string, string> = {
+  exenta: "Boleta exenta",
+  afecta: "Boleta afecta",
+};
+
+const METODO_PAGO_LABEL: Record<string, string> = {
+  debito: "Débito",
+  credito: "Crédito",
+  efectivo: "Efectivo",
+  otro: "Otro",
+};
+
 const ESTADO_COLOR: Record<string, string> = {
   pending: "#eaeaea",
   success: "#4ade80",
@@ -82,8 +94,14 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
             <div>
               <p className="font-medium">{b.nombre}</p>
               <p className="text-sm">
-                ${b.monto.toLocaleString("es-CL")} — {b.detalle}
+                ${b.monto.toLocaleString("es-CL")} — {TIPO_BOLETA_LABEL[b.tipoBoleta]} — {METODO_PAGO_LABEL[b.metodoPago]}
               </p>
+              {b.conDetalle && b.detalle && <p className="text-sm text-[#a0aec0]">Detalle: {b.detalle}</p>}
+              {b.conReceptor && (
+                <p className="text-sm text-[#a0aec0]">
+                  Receptor: {b.receptorNombre} ({b.receptorRut})
+                </p>
+              )}
               {b.status === "failed" && b.errorMessage && (
                 <p className="text-sm text-[#f87171]">{b.errorMessage}</p>
               )}

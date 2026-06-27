@@ -13,9 +13,30 @@ function sleep(ms: number): Promise<void> {
 export interface BoletaInput {
   nombre: string;
   monto: number;
-  detalle: string;
+  tipoBoleta: "exenta" | "afecta";
+  metodoPago: "debito" | "credito" | "efectivo" | "otro";
+  conReceptor: boolean;
+  receptorRut?: string | null;
+  receptorNombre?: string | null;
+  receptorDireccion?: string | null;
+  receptorEmail?: string | null;
+  receptorTelefono?: string | null;
+  conDetalle: boolean;
+  detalle?: string | null;
   email?: string | null;
 }
+
+const TEXTO_TIPO_BOLETA: Record<BoletaInput["tipoBoleta"], string> = {
+  exenta: "Boleta exenta",
+  afecta: "Boleta afecta",
+};
+
+const TEXTO_METODO_PAGO: Record<BoletaInput["metodoPago"], string> = {
+  debito: "Débito",
+  credito: "Crédito",
+  efectivo: "Efectivo",
+  otro: "Otro",
+};
 
 export interface BoletaResultado {
   nombre: string;
@@ -130,37 +151,90 @@ export class SIIAutomation {
     await sleep(1000);
   }
 
-  private async toggleDetalle(): Promise<void> {
-    const toggled = await this.p.evaluate(() => {
+  private async toggleSwitchPorTexto(texto: string): Promise<void> {
+    const toggled = await this.p.evaluate((t) => {
       const switches = Array.from(document.querySelectorAll(".v-input--switch"));
-      const sw = switches.find((s) => (s as HTMLElement).innerText.includes("Detalle"));
+      const sw = switches.find((s) => (s as HTMLElement).innerText.includes(t));
       const track = sw?.querySelector(".v-input--switch__track");
       if (track) {
         (track as HTMLElement).click();
         return true;
       }
       return false;
-    });
+    }, texto);
     if (!toggled) {
-      await this.p.locator("input[type=checkbox]").first().click({ timeout: 30000 });
+      const diagnostico = await this.capturarDiagnostico(`switch_${texto}_no_encontrado`);
+      throw new Error(`No se encontró el switch "${texto}". Diagnóstico: ${diagnostico}`);
     }
     await sleep(300);
   }
 
-  private async fillDetalle(detalle: string): Promise<void> {
-    const detalleEscaped = escape(detalle);
-    await this.p.evaluate((value) => {
-      const inputs = document.querySelectorAll(".v-text-field input");
-      for (const input of Array.from(inputs)) {
-        const label = input.closest(".v-text-field")?.querySelector(".v-label");
-        if (label && label.textContent?.includes("Detalle")) {
-          (input as HTMLInputElement).value = value;
-          input.dispatchEvent(new Event("input", { bubbles: true }));
-          break;
+  private async fillCampoPorLabel(labelTexto: string, valor: string): Promise<void> {
+    const encontrado = await this.p.evaluate(
+      ({ label, value }) => {
+        const inputs = document.querySelectorAll(".v-text-field input");
+        for (const input of Array.from(inputs)) {
+          const lbl = input.closest(".v-text-field")?.querySelector(".v-label");
+          if (lbl && lbl.textContent?.includes(label)) {
+            (input as HTMLInputElement).value = value;
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            return true;
+          }
         }
+        return false;
+      },
+      { label: labelTexto, value: valor },
+    );
+    if (!encontrado) {
+      const diagnostico = await this.capturarDiagnostico(`campo_${labelTexto}_no_encontrado`);
+      throw new Error(`No se encontró el campo "${labelTexto}". Diagnóstico: ${diagnostico}`);
+    }
+    await sleep(200);
+  }
+
+  private async seleccionarEnDropdownPorAncla(textoAncla: string, opcionExacta: string): Promise<void> {
+    const abierto = await this.p.evaluate((ancla) => {
+      const selects = Array.from(document.querySelectorAll(".v-select"));
+      const target = selects.find((s) => (s as HTMLElement).innerText.includes(ancla));
+      const boton = target?.querySelector('[role="button"]');
+      if (boton) {
+        (boton as HTMLElement).click();
+        return true;
       }
-    }, detalleEscaped);
-    await sleep(300);
+      return false;
+    }, textoAncla);
+    if (!abierto) {
+      const diagnostico = await this.capturarDiagnostico(`dropdown_${textoAncla}_no_encontrado`);
+      throw new Error(`No se encontró el selector "${textoAncla}". Diagnóstico: ${diagnostico}`);
+    }
+    await sleep(500);
+    await this.p.click(`text=${opcionExacta}`);
+    await sleep(500);
+  }
+
+  private async seleccionarTipoBoleta(tipo: BoletaInput["tipoBoleta"]): Promise<void> {
+    await this.seleccionarEnDropdownPorAncla("Boleta", TEXTO_TIPO_BOLETA[tipo]);
+  }
+
+  private async seleccionarMetodoPago(metodo: BoletaInput["metodoPago"]): Promise<void> {
+    await this.seleccionarEnDropdownPorAncla("método de pago", TEXTO_METODO_PAGO[metodo]);
+  }
+
+  private async llenarReceptor(boleta: BoletaInput): Promise<void> {
+    await this.toggleSwitchPorTexto("Receptor");
+    await this.fillCampoPorLabel("RUT", boleta.receptorRut ?? "");
+    await this.fillCampoPorLabel("Nombre", boleta.receptorNombre ?? "");
+    await this.fillCampoPorLabel("Dirección", boleta.receptorDireccion ?? "");
+    await this.fillCampoPorLabel("E-mail", boleta.receptorEmail ?? "");
+    await this.fillCampoPorLabel("Teléfono", boleta.receptorTelefono ?? "");
+  }
+
+  private async toggleDetalle(): Promise<void> {
+    await this.toggleSwitchPorTexto("Detalle");
+  }
+
+  private async fillDetalle(detalle: string): Promise<void> {
+    await this.fillCampoPorLabel("Detalle", detalle);
   }
 
   private async ingresarMonto(monto: number): Promise<void> {
@@ -236,8 +310,18 @@ export class SIIAutomation {
 
   async emitirBoleta(boleta: BoletaInput): Promise<string> {
     await this.clickEmitirInicial();
-    await this.toggleDetalle();
-    await this.fillDetalle(boleta.detalle);
+    await this.seleccionarTipoBoleta(boleta.tipoBoleta);
+    await this.seleccionarMetodoPago(boleta.metodoPago);
+
+    if (boleta.conReceptor) {
+      await this.llenarReceptor(boleta);
+    }
+
+    if (boleta.conDetalle && boleta.detalle) {
+      await this.toggleDetalle();
+      await this.fillDetalle(boleta.detalle);
+    }
+
     await this.ingresarMonto(boleta.monto);
     await this.clickEmitirFinal();
 
