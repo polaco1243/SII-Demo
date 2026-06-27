@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sii
+      POSTGRES_PASSWORD: sii
+      POSTGRES_DB: sii_demo
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+    volumes:
+      - descargas:/data/descargas
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - postgres
+    volumes:
+      - descargas:/data/descargas
+
+volumes:
+  pg_data:
+  descargas:

@@ -1,0 +1,16 @@
+{
+  "name": "sii-demo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=web",
+    "dev:worker": "npm run dev --workspace=worker",
+    "build:web": "npm run build --workspace=web",
+    "typecheck:worker": "npm run typecheck --workspace=worker",
+    "db:generate": "npm run generate --workspace=@sii-demo/db",
+    "db:migrate": "npm run migrate --workspace=@sii-demo/db"
+  }
+}
