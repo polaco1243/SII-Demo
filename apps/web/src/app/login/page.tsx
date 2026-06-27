@@ -26,31 +26,34 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="mx-auto mt-24 max-w-sm rounded-lg border border-[#1f3460] bg-[#16213e] p-8">
-      <h1 className="mb-6 text-xl font-semibold">Iniciar sesión</h1>
-      {error && <p className="mb-4 text-sm text-[#f87171]">Correo o contraseña incorrectos</p>}
+    <main className="mx-auto mt-24 max-w-sm rounded-card border border-border bg-surface p-8 shadow-card">
+      <h1 className="mb-6 text-page">Iniciar sesión</h1>
+      {error && <p className="mb-4 text-sm text-danger">Correo o contraseña incorrectos</p>}
       <form action={login} className="flex flex-col gap-4">
         <input
           name="email"
           type="email"
           placeholder="correo@ejemplo.com"
           required
-          className="rounded-md border border-[#1f3460] bg-[#1a1a2e] px-3 py-2"
+          className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-border-strong"
         />
         <input
           name="password"
           type="password"
           placeholder="Contraseña"
           required
-          className="rounded-md border border-[#1f3460] bg-[#1a1a2e] px-3 py-2"
+          className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-border-strong"
         />
-        <button type="submit" className="rounded-md bg-[#0f4c75] px-3 py-2 hover:bg-[#3282b8]">
+        <button
+          type="submit"
+          className="rounded-md bg-primary px-3 py-2 font-medium transition-colors hover:bg-primary-hover"
+        >
           Entrar
         </button>
       </form>
-      <p className="mt-4 text-sm">
+      <p className="mt-4 text-sm text-muted">
         ¿No tienes cuenta?{" "}
-        <a href="/register" className="text-[#3282b8]">
+        <a href="/register" className="font-medium text-accent transition-colors hover:text-accent-hover">
           Regístrate
         </a>
       </p>

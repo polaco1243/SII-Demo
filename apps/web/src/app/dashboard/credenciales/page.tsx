@@ -171,28 +171,30 @@ export default async function CredencialesPage({
   }
 
   return (
-    <main className="mx-auto mt-12 max-w-2xl p-6">
+    <main className="mx-auto mt-12 max-w-2xl px-6 pb-16">
       <AutoRefresh activo={hayTrabajoEnProceso} />
-      <a href="/dashboard" className="text-sm text-[#3282b8]">
+      <a href="/dashboard" className="inline-block rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
         ← Volver
       </a>
-      <h1 className="mb-6 mt-2 text-xl font-semibold">Credenciales SII</h1>
+      <h1 className="mb-6 mt-2 border-b border-border pb-5 text-page">Credenciales SII</h1>
 
-      {error === "campos" && <p className="mb-4 text-sm text-[#f87171]">Completa RUT y clave</p>}
+      {error === "campos" && <p className="mb-4 text-sm text-danger">Completa RUT y clave</p>}
       {error === "rut_invalido" && (
-        <p className="mb-4 text-sm text-[#f87171]">El RUT ingresado no es válido (revisa el dígito verificador)</p>
+        <p className="mb-4 text-sm text-danger">El RUT ingresado no es válido (revisa el dígito verificador)</p>
       )}
       {error === "sin_seleccion" && (
-        <p className="mb-4 text-sm text-[#f87171]">Selecciona al menos un emisor</p>
+        <p className="mb-4 text-sm text-danger">Selecciona al menos un emisor</p>
       )}
-      {error === "clave_vacia" && <p className="mb-4 text-sm text-[#f87171]">Escribe la nueva clave</p>}
+      {error === "clave_vacia" && <p className="mb-4 text-sm text-danger">Escribe la nueva clave</p>}
       {ok === "clave_actualizada" && (
-        <p className="mb-4 text-sm text-[#4ade80]">Clave actualizada correctamente</p>
+        <p className="mb-4 rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm text-success">
+          Clave actualizada correctamente
+        </p>
       )}
 
       {grupos.size > 0 && (
-        <div className="mb-8">
-          <h2 className="mb-3 font-medium">Credenciales SII</h2>
+        <div className="mb-10">
+          <h2 className="mb-3 text-section">Tus credenciales</h2>
           <ul className="flex flex-col gap-3">
             {Array.from(grupos.entries()).map(([rut, filas]) => {
               const cargando = filas.some((c) => c.status === "pendiente" || c.status === "descubriendo");
@@ -208,23 +210,23 @@ export default async function CredencialesPage({
               const necesitaAtencion = porConfirmar.length > 0 || conError.length > 0;
 
               return (
-                <li key={rut} className="rounded-md border border-[#1f3460] bg-[#16213e]">
+                <li key={rut} className="overflow-hidden rounded-card border border-border bg-surface shadow-card">
                   <details open={editandoEsteRut || necesitaAtencion} className="group">
-                    <summary className="flex cursor-pointer list-none items-center justify-between p-4 transition-colors hover:bg-[#1f3460]/40">
+                    <summary className="flex cursor-pointer list-none items-center justify-between p-4 transition-colors hover:bg-surface-2">
                       <span className="flex items-center gap-3">
-                        <span className="text-[#3282b8] transition-transform duration-200 group-open:rotate-90">▶</span>
+                        <span className="text-accent transition-transform duration-200 group-open:rotate-90">▶</span>
                         {cargando && <Spinner />}
                         <span>
-                          <p className="font-medium">
+                          <p className="flex items-center font-medium">
                             RUT {rut}
                             {necesitaAtencion && (
-                              <span className="ml-2 rounded-full bg-[#3282b8] px-2 py-0.5 text-xs">
+                              <span className="ml-2 rounded-full border border-warning/40 bg-warning/15 px-2 py-0.5 text-caption font-medium text-warning">
                                 requiere acción
                               </span>
                             )}
                           </p>
                           {!cargando && (
-                            <p className="text-sm text-[#a0aec0]">
+                            <p className="text-sm text-muted">
                               {listas.length} razón{listas.length === 1 ? "" : "es"} social
                               {listas.length === 1 ? "" : "es"} — clic para ver el detalle
                             </p>
@@ -234,7 +236,7 @@ export default async function CredencialesPage({
                       <DropdownMenu>
                         <Link
                           href={`/dashboard/credenciales?editando=${encodeURIComponent(rut)}`}
-                          className="block px-4 py-2 text-sm hover:bg-[#1f3460]"
+                          className="block px-4 py-2 text-sm transition-colors hover:bg-surface-2"
                         >
                           Editar clave
                         </Link>
@@ -242,7 +244,7 @@ export default async function CredencialesPage({
                           <input type="hidden" name="rut" value={rut} />
                           <button
                             type="submit"
-                            className="block w-full px-4 py-2 text-left text-sm text-[#f87171] hover:bg-[#1f3460]"
+                            className="block w-full px-4 py-2 text-left text-sm text-danger transition-colors hover:bg-surface-2"
                           >
                             Eliminar
                           </button>
@@ -250,9 +252,9 @@ export default async function CredencialesPage({
                       </DropdownMenu>
                     </summary>
 
-                    <div className="flex flex-col gap-3 border-t border-[#1f3460] p-4">
+                    <div className="flex flex-col gap-3 border-t border-border p-4">
                       {editandoEsteRut && (
-                        <form action={actualizarClave} className="flex gap-2 rounded-md bg-[#1a1a2e] p-3">
+                        <form action={actualizarClave} className="flex gap-2 rounded-md border border-border bg-sunken p-3">
                           <input type="hidden" name="rut" value={rut} />
                           <input
                             name="nuevaClave"
@@ -260,17 +262,17 @@ export default async function CredencialesPage({
                             placeholder="Nueva clave SII"
                             required
                             autoFocus
-                            className="flex-1 rounded-md border border-[#1f3460] bg-[#16213e] px-3 py-1.5 text-sm"
+                            className="flex-1 rounded-md border border-border bg-surface px-3 py-1.5 text-sm transition-colors hover:border-border-strong focus:border-border-strong"
                           />
                           <button
                             type="submit"
-                            className="rounded-md bg-[#0f4c75] px-3 py-1.5 text-sm hover:bg-[#3282b8]"
+                            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium transition-colors hover:bg-primary-hover"
                           >
                             Guardar
                           </button>
                           <Link
                             href="/dashboard/credenciales"
-                            className="flex items-center rounded-md px-3 py-1.5 text-sm text-[#a0aec0] hover:bg-[#1f3460]"
+                            className="flex items-center rounded-md px-3 py-1.5 text-sm text-muted transition-colors hover:bg-surface-2 hover:text-text"
                           >
                             Cancelar
                           </Link>
@@ -278,7 +280,7 @@ export default async function CredencialesPage({
                       )}
 
                       {cargando && (
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-2 text-sm text-muted">
                           <Spinner />
                           <span>Verificando con el SII… puede tardar hasta 30 segundos.</span>
                         </div>
@@ -294,13 +296,16 @@ export default async function CredencialesPage({
                       {porConfirmar.map((c) => (
                         <form key={c.id} action={confirmarEmisores}>
                           <input type="hidden" name="credencialId" value={c.id} />
-                          <p className="mb-2 text-sm">Elige los emisores que vas a usar:</p>
+                          <p className="mb-2 text-sm text-muted">Elige los emisores que vas a usar:</p>
                           <div className="flex flex-col gap-2">
                             {(c.emisoresDisponibles ?? []).map((texto) => {
                               const { razonSocial } = parseEmisor(texto);
                               return (
-                                <label key={texto} className="flex items-center gap-2 text-sm">
-                                  <input type="checkbox" name="emisor" value={texto} />
+                                <label
+                                  key={texto}
+                                  className="flex cursor-pointer items-center gap-2.5 rounded-md border border-border bg-sunken px-3 py-2 text-sm transition-colors hover:border-border-strong"
+                                >
+                                  <input type="checkbox" name="emisor" value={texto} className="accent-accent" />
                                   {razonSocial}
                                 </label>
                               );
@@ -308,7 +313,7 @@ export default async function CredencialesPage({
                           </div>
                           <button
                             type="submit"
-                            className="mt-3 rounded-md bg-[#0f4c75] px-3 py-2 text-sm hover:bg-[#3282b8]"
+                            className="mt-3 rounded-md bg-primary px-3 py-2 text-sm font-medium transition-colors hover:bg-primary-hover"
                           >
                             Confirmar selección
                           </button>
@@ -316,14 +321,17 @@ export default async function CredencialesPage({
                       ))}
 
                       {listas.map((c) => (
-                        <div key={c.id} className="flex items-center justify-between">
+                        <div
+                          key={c.id}
+                          className="flex items-center justify-between rounded-md border border-border bg-sunken px-3 py-2.5"
+                        >
                           <div>
                             <p className="font-medium">{c.emisorRazonSocial ?? c.emisor}</p>
-                            <p className="text-sm text-[#a0aec0]">RUT emisor: {c.emisorRut ?? "—"}</p>
+                            <p className="text-sm text-muted">RUT emisor: {c.emisorRut ?? "—"}</p>
                           </div>
                           <form action={eliminarCredencial}>
                             <input type="hidden" name="credencialId" value={c.id} />
-                            <button type="submit" className="text-sm text-[#f87171]">
+                            <button type="submit" className="rounded text-sm text-danger transition-colors hover:text-accent-hover">
                               Quitar
                             </button>
                           </form>
@@ -331,18 +339,18 @@ export default async function CredencialesPage({
                       ))}
 
                       {conError.map((c) => (
-                        <div key={c.id}>
-                          <p className="text-sm text-[#f87171]">{c.errorMessage ?? "Error desconocido"}</p>
+                        <div key={c.id} className="rounded-md border border-danger/30 bg-danger/10 p-3">
+                          <p className="text-sm text-danger">{c.errorMessage ?? "Error desconocido"}</p>
                           <div className="mt-2 flex gap-3">
                             <form action={reintentarDescubrimiento}>
                               <input type="hidden" name="credencialId" value={c.id} />
-                              <button type="submit" className="text-sm text-[#3282b8]">
+                              <button type="submit" className="rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
                                 Reintentar
                               </button>
                             </form>
                             <form action={eliminarCredencial}>
                               <input type="hidden" name="credencialId" value={c.id} />
-                              <button type="submit" className="text-sm text-[#f87171]">
+                              <button type="submit" className="rounded text-sm text-danger transition-colors hover:opacity-80">
                                 Eliminar
                               </button>
                             </form>
@@ -358,28 +366,33 @@ export default async function CredencialesPage({
         </div>
       )}
 
-      <h2 className="mb-3 font-medium">Agregar credencial SII</h2>
-      <form action={agregarCredencial} className="flex flex-col gap-4">
-        <input
-          name="rut"
-          placeholder="RUT (ej. 12345678-9)"
-          required
-          className="rounded-md border border-[#1f3460] bg-[#16213e] px-3 py-2"
-        />
-        <input
-          name="clave"
-          type="password"
-          placeholder="Clave SII"
-          required
-          className="rounded-md border border-[#1f3460] bg-[#16213e] px-3 py-2"
-        />
-        <button type="submit" className="rounded-md bg-[#0f4c75] px-3 py-2 hover:bg-[#3282b8]">
-          Verificar credencial
-        </button>
-      </form>
-      <p className="mt-4 text-sm">
-        La clave se cifra antes de guardarse. Tras verificarla, vas a elegir con qué emisor(es) emitir.
-      </p>
+      <section className="rounded-card border border-border bg-surface p-6 shadow-card">
+        <h2 className="mb-4 text-section">Agregar credencial SII</h2>
+        <form action={agregarCredencial} className="flex flex-col gap-4">
+          <input
+            name="rut"
+            placeholder="RUT (ej. 12345678-9)"
+            required
+            className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-border-strong"
+          />
+          <input
+            name="clave"
+            type="password"
+            placeholder="Clave SII"
+            required
+            className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-border-strong"
+          />
+          <button
+            type="submit"
+            className="rounded-md bg-primary px-3 py-2 font-medium transition-colors hover:bg-primary-hover"
+          >
+            Verificar credencial
+          </button>
+        </form>
+        <p className="mt-4 text-sm text-muted">
+          La clave se cifra antes de guardarse. Tras verificarla, vas a elegir con qué emisor(es) emitir.
+        </p>
+      </section>
     </main>
   );
 }

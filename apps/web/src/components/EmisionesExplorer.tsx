@@ -37,16 +37,20 @@ const BATCH_LABEL: Record<string, string> = {
   failed: "Con errores",
 };
 
-const BATCH_COLOR: Record<string, string> = {
-  borrador: "#fbbf24",
-  pending: "#eaeaea",
-  running: "#3282b8",
-  done: "#4ade80",
-  failed: "#f87171",
+const BATCH_BADGE: Record<string, string> = {
+  borrador: "border-warning/40 bg-warning/15 text-warning",
+  pending: "border-border bg-surface-2 text-muted",
+  running: "border-accent/40 bg-info/15 text-accent",
+  done: "border-success/40 bg-success/15 text-success",
+  failed: "border-danger/40 bg-danger/15 text-danger",
 };
 
 const BOLETA_LABEL: Record<string, string> = { pending: "Pendiente", success: "Emitida", failed: "Falló" };
-const BOLETA_COLOR: Record<string, string> = { pending: "#eaeaea", success: "#4ade80", failed: "#f87171" };
+const BOLETA_BADGE: Record<string, string> = {
+  pending: "border-border bg-surface-2 text-muted",
+  success: "border-success/40 bg-success/15 text-success",
+  failed: "border-danger/40 bg-danger/15 text-danger",
+};
 
 function coincide(valor: string | null | undefined, filtro: string): boolean {
   if (!filtro) return true;
@@ -87,61 +91,65 @@ export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
           placeholder="Filtrar por RUT emisor"
           value={filtroRut}
           onChange={(e) => setFiltroRut(e.target.value)}
-          className="rounded-md border border-[#1f3460] bg-[#16213e] px-3 py-1.5 text-sm"
+          className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm transition-colors hover:border-border-strong focus:border-border-strong"
         />
         <input
           placeholder="Filtrar por razón social"
           value={filtroRazonSocial}
           onChange={(e) => setFiltroRazonSocial(e.target.value)}
-          className="rounded-md border border-[#1f3460] bg-[#16213e] px-3 py-1.5 text-sm"
+          className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm transition-colors hover:border-border-strong focus:border-border-strong"
         />
         <input
           placeholder="Filtrar por archivo"
           value={filtroArchivo}
           onChange={(e) => setFiltroArchivo(e.target.value)}
-          className="rounded-md border border-[#1f3460] bg-[#16213e] px-3 py-1.5 text-sm"
+          className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm transition-colors hover:border-border-strong focus:border-border-strong"
         />
       </div>
 
       {grupos.length === 0 ? (
-        <p className="text-sm text-[#a0aec0]">Nada coincide con los filtros.</p>
+        <p className="rounded-card border border-dashed border-border bg-surface/40 px-4 py-8 text-center text-sm text-muted">
+          Nada coincide con los filtros.
+        </p>
       ) : (
         <ul className="flex flex-col gap-3">
           {grupos.map((grupo) => (
-            <li key={`${grupo.rut}|${grupo.razonSocial}`} className="rounded-md border border-[#1f3460] bg-[#16213e]">
+            <li key={`${grupo.rut}|${grupo.razonSocial}`} className="overflow-hidden rounded-card border border-border bg-surface shadow-card">
               <details open className="group">
-                <summary className="flex cursor-pointer list-none items-center gap-3 p-4">
-                  <span className="text-[#3282b8] transition-transform duration-200 group-open:rotate-90">▶</span>
+                <summary className="flex cursor-pointer list-none items-center gap-3 p-4 transition-colors hover:bg-surface-2">
+                  <span className="text-accent transition-transform duration-200 group-open:rotate-90">▶</span>
                   <div>
                     <p className="font-medium">{grupo.razonSocial}</p>
-                    <p className="text-sm text-[#a0aec0]">
+                    <p className="text-sm text-muted">
                       RUT {grupo.rut} — {grupo.archivos.length} archivo{grupo.archivos.length === 1 ? "" : "s"}
                     </p>
                   </div>
                 </summary>
 
-                <div className="border-t border-[#1f3460] p-4">
+                <div className="border-t border-border p-4">
                   <ul className="flex flex-col gap-2">
                     {grupo.archivos.map((archivo) => (
-                      <li key={archivo.batchId} className="rounded-md border border-[#1f3460] bg-[#1a1a2e]">
-                        <details className="group">
-                          <summary className="flex cursor-pointer list-none items-center justify-between p-3">
-                            <span className="flex items-center gap-3">
-                              <span className="text-[#3282b8] transition-transform duration-200 group-open:rotate-90">
+                      <li key={archivo.batchId} className="overflow-hidden rounded-md border border-border bg-sunken">
+                        <details className="group/file">
+                          <summary className="flex cursor-pointer list-none items-center justify-between p-3 transition-colors hover:bg-surface-2/50">
+                            <span className="flex min-w-0 items-center gap-3">
+                              <span className="text-accent transition-transform duration-200 group-open/file:rotate-90">
                                 ▶
                               </span>
-                              <span>{archivo.csvFilename}</span>
-                              <span className="text-xs text-[#a0aec0]">
+                              <span className="truncate font-medium">{archivo.csvFilename}</span>
+                              <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-caption text-muted">
                                 {archivo.boletas.length} boleta{archivo.boletas.length === 1 ? "" : "s"}
                               </span>
                             </span>
-                            <span className="flex items-center gap-3">
-                              <span style={{ color: BATCH_COLOR[archivo.batchStatus] }} className="text-sm">
+                            <span className="flex shrink-0 items-center gap-3">
+                              <span
+                                className={`rounded-full border px-2.5 py-0.5 text-caption font-medium ${BATCH_BADGE[archivo.batchStatus]}`}
+                              >
                                 {BATCH_LABEL[archivo.batchStatus]}
                               </span>
                               <a
                                 href={`/dashboard/batches/${archivo.batchId}`}
-                                className="text-sm text-[#3282b8]"
+                                className="rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 Abrir
@@ -149,44 +157,53 @@ export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
                             </span>
                           </summary>
 
-                          <div className="overflow-x-auto border-t border-[#1f3460] p-3">
-                            <table className="w-full text-left text-sm">
+                          <div className="overflow-x-auto border-t border-border">
+                            <table className="w-full border-collapse text-left text-sm">
                               <thead>
-                                <tr className="text-[#a0aec0]">
-                                  <th className="px-2 py-1">Nombre</th>
-                                  <th className="px-2 py-1">Monto</th>
-                                  <th className="px-2 py-1">Tipo</th>
-                                  <th className="px-2 py-1">Método</th>
-                                  <th className="px-2 py-1">Receptor</th>
-                                  <th className="px-2 py-1">Detalle</th>
-                                  <th className="px-2 py-1">Estado</th>
-                                  <th className="px-2 py-1"></th>
+                                <tr className="border-b border-border bg-surface text-caption uppercase tracking-wide text-faint">
+                                  <th className="px-3 py-2 font-medium">Nombre</th>
+                                  <th className="px-3 py-2 text-right font-medium">Monto</th>
+                                  <th className="px-3 py-2 font-medium">Tipo</th>
+                                  <th className="px-3 py-2 font-medium">Método</th>
+                                  <th className="px-3 py-2 font-medium">Receptor</th>
+                                  <th className="px-3 py-2 font-medium">Detalle</th>
+                                  <th className="px-3 py-2 font-medium">Estado</th>
+                                  <th className="px-3 py-2 font-medium"></th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {archivo.boletas.map((b) => (
-                                  <tr key={b.id} className="border-t border-[#1f3460]">
-                                    <td className="px-2 py-1">{b.nombre}</td>
-                                    <td className="px-2 py-1">${b.monto.toLocaleString("es-CL")}</td>
-                                    <td className="px-2 py-1">{b.tipoBoleta}</td>
-                                    <td className="px-2 py-1">{b.metodoPago}</td>
-                                    <td className="px-2 py-1">
+                                  <tr
+                                    key={b.id}
+                                    className="border-b border-border/60 last:border-b-0 odd:bg-surface/30 hover:bg-surface-2/40"
+                                  >
+                                    <td className="px-3 py-2 font-medium">{b.nombre}</td>
+                                    <td className="px-3 py-2 text-right tabular-nums">
+                                      ${b.monto.toLocaleString("es-CL")}
+                                    </td>
+                                    <td className="px-3 py-2 capitalize text-muted">{b.tipoBoleta}</td>
+                                    <td className="px-3 py-2 capitalize text-muted">{b.metodoPago}</td>
+                                    <td className="px-3 py-2 text-muted">
                                       {b.conReceptor ? `${b.receptorNombre} (${b.receptorRut})` : "—"}
                                     </td>
-                                    <td className="px-2 py-1">{b.conDetalle ? b.detalle : "—"}</td>
-                                    <td className="px-2 py-1" style={{ color: BOLETA_COLOR[b.status] }}>
-                                      {BOLETA_LABEL[b.status]}
+                                    <td className="px-3 py-2 text-muted">{b.conDetalle ? b.detalle : "—"}</td>
+                                    <td className="px-3 py-2">
+                                      <span
+                                        className={`inline-block rounded-full border px-2 py-0.5 text-caption font-medium ${BOLETA_BADGE[b.status]}`}
+                                      >
+                                        {BOLETA_LABEL[b.status]}
+                                      </span>
                                       {b.status === "failed" && b.errorMessage && (
-                                        <span className="ml-1 text-xs text-[#a0aec0]" title={b.errorMessage}>
+                                        <span className="ml-1 cursor-help text-caption text-faint" title={b.errorMessage}>
                                           (ver detalle)
                                         </span>
                                       )}
                                     </td>
-                                    <td className="px-2 py-1">
+                                    <td className="px-3 py-2">
                                       {b.status === "success" && (
                                         <a
                                           href={`/api/batches/${b.batchId}/pdf/${b.id}`}
-                                          className="text-[#3282b8]"
+                                          className="rounded font-medium text-accent transition-colors hover:text-accent-hover"
                                         >
                                           PDF
                                         </a>

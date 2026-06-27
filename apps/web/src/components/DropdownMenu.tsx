@@ -24,13 +24,15 @@ export function DropdownMenu({ children }: { children: React.ReactNode }) {
           e.stopPropagation();
           setAbierto((v) => !v);
         }}
-        className="rounded-md px-2 py-1 text-lg leading-none text-[#eaeaea] hover:bg-[#1f3460]"
+        className="rounded-md px-2 py-1 text-lg leading-none text-text transition-colors hover:bg-surface-2"
         aria-label="Más opciones"
+        aria-haspopup="menu"
+        aria-expanded={abierto}
       >
         ⋮
       </button>
       {abierto && (
-        <div className="absolute right-0 z-10 mt-1 min-w-[160px] rounded-md border border-[#1f3460] bg-[#16213e] py-1 shadow-lg">
+        <div className="absolute right-0 z-10 mt-1 min-w-[160px] rounded-md border border-border bg-surface py-1 shadow-pop">
           {children}
         </div>
       )}

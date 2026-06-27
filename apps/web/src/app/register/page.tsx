@@ -30,13 +30,13 @@ export default async function RegisterPage({
   const { error } = await searchParams;
 
   return (
-    <main className="mx-auto mt-24 max-w-sm rounded-lg border border-[#1f3460] bg-[#16213e] p-8">
-      <h1 className="mb-6 text-xl font-semibold">Crear cuenta</h1>
+    <main className="mx-auto mt-24 max-w-sm rounded-card border border-border bg-surface p-8 shadow-card">
+      <h1 className="mb-6 text-page">Crear cuenta</h1>
       {error === "correo_en_uso" && (
-        <p className="mb-4 text-sm text-[#f87171]">Ese correo ya está registrado</p>
+        <p className="mb-4 text-sm text-danger">Ese correo ya está registrado</p>
       )}
       {error === "datos_invalidos" && (
-        <p className="mb-4 text-sm text-[#f87171]">Correo inválido o contraseña muy corta (mínimo 8)</p>
+        <p className="mb-4 text-sm text-danger">Correo inválido o contraseña muy corta (mínimo 8)</p>
       )}
       <form action={register} className="flex flex-col gap-4">
         <input
@@ -44,7 +44,7 @@ export default async function RegisterPage({
           type="email"
           placeholder="correo@ejemplo.com"
           required
-          className="rounded-md border border-[#1f3460] bg-[#1a1a2e] px-3 py-2"
+          className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-border-strong"
         />
         <input
           name="password"
@@ -52,15 +52,18 @@ export default async function RegisterPage({
           placeholder="Contraseña (mínimo 8 caracteres)"
           minLength={8}
           required
-          className="rounded-md border border-[#1f3460] bg-[#1a1a2e] px-3 py-2"
+          className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-border-strong"
         />
-        <button type="submit" className="rounded-md bg-[#0f4c75] px-3 py-2 hover:bg-[#3282b8]">
+        <button
+          type="submit"
+          className="rounded-md bg-primary px-3 py-2 font-medium transition-colors hover:bg-primary-hover"
+        >
           Crear cuenta
         </button>
       </form>
-      <p className="mt-4 text-sm">
+      <p className="mt-4 text-sm text-muted">
         ¿Ya tienes cuenta?{" "}
-        <a href="/login" className="text-[#3282b8]">
+        <a href="/login" className="font-medium text-accent transition-colors hover:text-accent-hover">
           Inicia sesión
         </a>
       </p>

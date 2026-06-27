@@ -2,7 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #1a1a2e;
-  color: #eaeaea;
+@layer base {
+  body {
+    @apply bg-bg text-text antialiased;
+  }
+
+  /* Foco visible y consistente en todos los elementos interactivos.
+     Solo aparece con navegación por teclado, no al hacer clic. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-focus ring-offset-2 ring-offset-bg rounded-[6px];
+  }
+
+  /* Placeholders legibles sobre fondo oscuro */
+  ::placeholder {
+    @apply text-faint;
+  }
 }

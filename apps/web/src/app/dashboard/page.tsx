@@ -230,35 +230,35 @@ export default async function DashboardPage({
   const hayTrabajoEnProceso = archivos.some((b) => b.batchStatus === "pending" || b.batchStatus === "running");
 
   return (
-    <main className="mx-auto mt-12 max-w-2xl p-6">
+    <main className="mx-auto mt-12 max-w-2xl px-6 pb-16">
       <AutoRefresh activo={hayTrabajoEnProceso} />
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">SII E-Boleta</h1>
+      <div className="mb-8 flex items-center justify-between border-b border-border pb-5">
+        <h1 className="text-page">SII E-Boleta</h1>
         <form
           action={async () => {
             "use server";
             await signOut({ redirectTo: "/login" });
           }}
         >
-          <button type="submit" className="text-sm text-[#3282b8]">
+          <button type="submit" className="rounded text-sm text-muted transition-colors hover:text-text">
             Cerrar sesión
           </button>
         </form>
       </div>
 
       {error === "faltan_datos" && (
-        <p className="mb-4 text-sm text-[#f87171]">Selecciona una credencial y un archivo CSV</p>
+        <p className="mb-4 text-sm text-danger">Selecciona una credencial y un archivo CSV</p>
       )}
       {error && error !== "faltan_datos" && (
-        <p className="mb-4 text-sm text-[#f87171]">CSV inválido: {error}</p>
+        <p className="mb-4 text-sm text-danger">CSV inválido: {error}</p>
       )}
 
-      <section className="mb-10 rounded-lg border border-[#1f3460] bg-[#16213e] p-6">
-        <h2 className="mb-4 font-medium">Nueva emisión por CSV</h2>
+      <section className="mb-10 rounded-card border border-border bg-surface p-6 shadow-card">
+        <h2 className="mb-4 text-section">Nueva emisión por CSV</h2>
         {credenciales.length === 0 ? (
-          <p className="text-sm">
+          <p className="text-sm text-muted">
             Primero agrega una{" "}
-            <a href="/dashboard/credenciales" className="text-[#3282b8]">
+            <a href="/dashboard/credenciales" className="font-medium text-accent transition-colors hover:text-accent-hover">
               credencial SII
             </a>
             .
@@ -268,7 +268,7 @@ export default async function DashboardPage({
             <select
               name="siiCredentialId"
               required
-              className="rounded-md border border-[#1f3460] bg-[#1a1a2e] px-3 py-2"
+              className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-border-strong"
             >
               {credenciales.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -276,26 +276,37 @@ export default async function DashboardPage({
                 </option>
               ))}
             </select>
-            <input name="csv" type="file" accept=".csv" required className="text-sm" />
-            <button type="submit" className="rounded-md bg-[#0f4c75] px-3 py-2 hover:bg-[#3282b8]">
+            <input
+              name="csv"
+              type="file"
+              accept=".csv"
+              required
+              className="text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text hover:file:bg-border"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-primary px-3 py-2 font-medium transition-colors hover:bg-primary-hover"
+            >
               Subir y encolar
             </button>
           </form>
         )}
-        <div className="mt-4 flex gap-4 text-sm">
-          <a href="/dashboard/credenciales" className="text-[#3282b8]">
+        <div className="mt-5 flex gap-4 border-t border-border pt-4 text-sm">
+          <a href="/dashboard/credenciales" className="font-medium text-accent transition-colors hover:text-accent-hover">
             Gestionar credenciales
           </a>
-          <a href="/ejemplo-boletas.csv" download className="text-[#3282b8]">
+          <a href="/ejemplo-boletas.csv" download className="font-medium text-accent transition-colors hover:text-accent-hover">
             Descargar CSV de ejemplo
           </a>
         </div>
       </section>
 
       <section>
-        <h2 className="mb-4 font-medium">Emisiones</h2>
+        <h2 className="mb-4 text-section">Emisiones</h2>
         {archivos.length === 0 ? (
-          <p className="text-sm">Aún no has subido ningún CSV.</p>
+          <p className="rounded-card border border-dashed border-border bg-surface/40 px-4 py-8 text-center text-sm text-muted">
+            Aún no has subido ningún CSV.
+          </p>
         ) : (
           <EmisionesExplorer archivos={archivos} />
         )}

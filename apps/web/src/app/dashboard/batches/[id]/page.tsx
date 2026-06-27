@@ -22,10 +22,10 @@ const METODO_PAGO_LABEL: Record<string, string> = {
   otro: "Otro",
 };
 
-const ESTADO_COLOR: Record<string, string> = {
-  pending: "#eaeaea",
-  success: "#4ade80",
-  failed: "#f87171",
+const ESTADO_BADGE: Record<string, string> = {
+  pending: "border-border bg-surface-2 text-muted",
+  success: "border-success/40 bg-success/15 text-success",
+  failed: "border-danger/40 bg-danger/15 text-danger",
 };
 
 async function reintentarBoleta(formData: FormData) {
@@ -106,28 +106,31 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
   const hayTrabajoEnProceso = batch.status === "pending" || batch.status === "running";
 
   return (
-    <main className="mx-auto mt-12 max-w-2xl p-6">
+    <main className="mx-auto mt-12 max-w-2xl px-6 pb-16">
       <AutoRefresh activo={hayTrabajoEnProceso} />
-      <a href="/dashboard" className="text-sm text-[#3282b8]">
+      <a href="/dashboard" className="inline-block rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
         ← Volver
       </a>
-      <h1 className="mb-2 mt-2 text-xl font-semibold">{batch.csvFilename}</h1>
+      <h1 className="mb-1 mt-2 text-page">{batch.csvFilename}</h1>
+      <p className="mb-6 text-sm text-muted">
+        {boletas.length} boleta{boletas.length === 1 ? "" : "s"}
+      </p>
 
       {batch.status === "borrador" && (
-        <div className="mb-6 flex items-center justify-between rounded-md bg-[#1a1a2e] p-3">
-          <p className="text-sm text-[#fbbf24]">
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-card border border-warning/30 bg-warning/10 p-4">
+          <p className="text-sm text-warning">
             Revisa las {boletas.length} boleta{boletas.length === 1 ? "" : "s"} antes de emitir.
           </p>
-          <div className="flex gap-2">
+          <div className="flex shrink-0 gap-2">
             <form action={cancelarBatch}>
               <input type="hidden" name="batchId" value={batch.id} />
-              <button type="submit" className="rounded-md px-3 py-1.5 text-sm text-[#f87171] hover:bg-[#1f3460]">
+              <button type="submit" className="rounded-md px-3 py-1.5 text-sm text-danger transition-colors hover:bg-surface-2">
                 Cancelar
               </button>
             </form>
             <form action={confirmarBatch}>
               <input type="hidden" name="batchId" value={batch.id} />
-              <button type="submit" className="rounded-md bg-[#0f4c75] px-3 py-1.5 text-sm hover:bg-[#3282b8]">
+              <button type="submit" className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium transition-colors hover:bg-primary-hover">
                 Emitir boletas
               </button>
             </form>
@@ -139,27 +142,29 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
         {boletas.map((b) => (
           <li
             key={b.id}
-            className="flex items-center justify-between rounded-md border border-[#1f3460] bg-[#16213e] p-3"
+            className="flex items-center justify-between gap-4 rounded-card border border-border bg-surface p-4 shadow-card"
           >
-            <div>
+            <div className="min-w-0">
               <p className="font-medium">{b.nombre}</p>
-              <p className="text-sm">
-                ${b.monto.toLocaleString("es-CL")} — {TIPO_BOLETA_LABEL[b.tipoBoleta]} — {METODO_PAGO_LABEL[b.metodoPago]}
+              <p className="text-sm text-muted">
+                <span className="font-medium text-text">${b.monto.toLocaleString("es-CL")}</span> — {TIPO_BOLETA_LABEL[b.tipoBoleta]} — {METODO_PAGO_LABEL[b.metodoPago]}
               </p>
-              {b.conDetalle && b.detalle && <p className="text-sm text-[#a0aec0]">Detalle: {b.detalle}</p>}
+              {b.conDetalle && b.detalle && <p className="text-sm text-muted">Detalle: {b.detalle}</p>}
               {b.conReceptor && (
-                <p className="text-sm text-[#a0aec0]">
+                <p className="text-sm text-muted">
                   Receptor: {b.receptorNombre} ({b.receptorRut})
                 </p>
               )}
               {b.status === "failed" && b.errorMessage && (
-                <p className="text-sm text-[#f87171]">{b.errorMessage}</p>
+                <p className="mt-1 text-sm text-danger">{b.errorMessage}</p>
               )}
             </div>
-            <div className="flex items-center gap-3">
-              <span style={{ color: ESTADO_COLOR[b.status] }}>{ESTADO_LABEL[b.status]}</span>
+            <div className="flex shrink-0 items-center gap-3">
+              <span className={`rounded-full border px-2.5 py-0.5 text-caption font-medium ${ESTADO_BADGE[b.status]}`}>
+                {ESTADO_LABEL[b.status]}
+              </span>
               {b.status === "success" && (
-                <a href={`/api/batches/${batch.id}/pdf/${b.id}`} className="text-[#3282b8]">
+                <a href={`/api/batches/${batch.id}/pdf/${b.id}`} className="rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
                   PDF
                 </a>
               )}
@@ -167,7 +172,7 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                 <form action={reintentarBoleta}>
                   <input type="hidden" name="boletaId" value={b.id} />
                   <input type="hidden" name="batchId" value={batch.id} />
-                  <button type="submit" className="text-[#3282b8]">
+                  <button type="submit" className="rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
                     Reintentar
                   </button>
                 </form>
