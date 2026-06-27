@@ -15,4 +15,4 @@ COPY apps/worker apps/worker
 
 WORKDIR /repo/apps/worker
 
-CMD ["npx", "tsx", "src/index.ts"]
+CMD ["sh", "-c", "cd /repo/packages/db && npx tsx src/migrate.ts && cd /repo/apps/worker && npx tsx src/index.ts"]
