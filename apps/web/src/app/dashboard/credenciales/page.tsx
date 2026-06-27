@@ -171,7 +171,7 @@ export default async function CredencialesPage({
   }
 
   return (
-    <main className="mx-auto mt-12 max-w-lg p-6">
+    <main className="mx-auto mt-12 max-w-2xl p-6">
       <AutoRefresh activo={hayTrabajoEnProceso} />
       <a href="/dashboard" className="text-sm text-[#3282b8]">
         ← Volver
@@ -205,18 +205,28 @@ export default async function CredencialesPage({
                 0,
               );
 
+              const necesitaAtencion = porConfirmar.length > 0 || conError.length > 0;
+
               return (
                 <li key={rut} className="rounded-md border border-[#1f3460] bg-[#16213e]">
-                  <details open={editandoEsteRut}>
-                    <summary className="flex cursor-pointer list-none items-center justify-between p-4">
+                  <details open={editandoEsteRut || necesitaAtencion} className="group">
+                    <summary className="flex cursor-pointer list-none items-center justify-between p-4 transition-colors hover:bg-[#1f3460]/40">
                       <span className="flex items-center gap-3">
+                        <span className="text-[#3282b8] transition-transform duration-200 group-open:rotate-90">▶</span>
                         {cargando && <Spinner />}
                         <span>
-                          <p className="font-medium">RUT {rut}</p>
+                          <p className="font-medium">
+                            RUT {rut}
+                            {necesitaAtencion && (
+                              <span className="ml-2 rounded-full bg-[#3282b8] px-2 py-0.5 text-xs">
+                                requiere acción
+                              </span>
+                            )}
+                          </p>
                           {!cargando && (
                             <p className="text-sm text-[#a0aec0]">
                               {listas.length} razón{listas.length === 1 ? "" : "es"} social
-                              {listas.length === 1 ? "" : "es"}
+                              {listas.length === 1 ? "" : "es"} — clic para ver el detalle
                             </p>
                           )}
                         </span>
