@@ -37,7 +37,14 @@ export class SIIAutomation {
 
   async start(): Promise<void> {
     this.browser = await chromium.launch({ headless: this.headless });
-    this.page = await this.browser.newPage({ acceptDownloads: true });
+    this.page = await this.browser.newPage({
+      acceptDownloads: true,
+      viewport: { width: 1366, height: 768 },
+      locale: "es-CL",
+      timezoneId: "America/Santiago",
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    });
     await this.page.goto(SII_URL);
     await this.page.waitForLoadState("networkidle");
   }
@@ -51,7 +58,29 @@ export class SIIAutomation {
     return this.page;
   }
 
+  private async capturarDiagnostico(etiqueta: string): Promise<string> {
+    const timestamp = Date.now();
+    const screenshotPath = `${this.descargasDir}/debug_${etiqueta}_${timestamp}.png`;
+    try {
+      await this.p.screenshot({ path: screenshotPath, fullPage: true });
+    } catch {
+      // si tampoco se puede capturar pantalla, seguimos con lo que sí tenemos
+    }
+    const url = this.p.url();
+    const title = await this.p.title().catch(() => "?");
+    const textoVisible = await this.p
+      .evaluate(() => document.body?.innerText?.slice(0, 300) ?? "")
+      .catch(() => "");
+    return `url=${url} | title="${title}" | screenshot=${screenshotPath} | texto="${textoVisible.replace(/\s+/g, " ").trim()}"`;
+  }
+
   private async ingresarCredenciales(): Promise<void> {
+    try {
+      await this.p.waitForSelector("#inputRut", { state: "visible", timeout: 20000 });
+    } catch (err) {
+      const diagnostico = await this.capturarDiagnostico("login_no_aparecio");
+      throw new Error(`No apareció el formulario de login del SII. Diagnóstico: ${diagnostico}`);
+    }
     await this.p.fill("#inputRut", this.rut);
     await this.p.fill("#inputPass", this.clave);
     await this.p.click("#bt_ingresar");
