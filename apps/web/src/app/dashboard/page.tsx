@@ -153,9 +153,14 @@ export default async function DashboardPage({
             </button>
           </form>
         )}
-        <a href="/dashboard/credenciales" className="mt-4 inline-block text-sm text-[#3282b8]">
-          Gestionar credenciales
-        </a>
+        <div className="mt-4 flex gap-4 text-sm">
+          <a href="/dashboard/credenciales" className="text-[#3282b8]">
+            Gestionar credenciales
+          </a>
+          <a href="/ejemplo-boletas.csv" download className="text-[#3282b8]">
+            Descargar CSV de ejemplo
+          </a>
+        </div>
       </section>
 
       <section>
