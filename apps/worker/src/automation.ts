@@ -336,6 +336,31 @@ export class SIIAutomation {
     return destino;
   }
 
+  async runBatchSimulado(boletas: BoletaInput[]): Promise<BoletaResultado[]> {
+    const fs = await import("node:fs/promises");
+    const pdfFalso = Buffer.from(
+      "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>",
+    );
+
+    const resultados: BoletaResultado[] = [];
+    for (let i = 0; i < boletas.length; i++) {
+      const boleta = boletas[i];
+      await sleep(500);
+      if (i % 3 === 2) {
+        resultados.push({
+          nombre: boleta.nombre,
+          exito: false,
+          error: "Simulación: error de prueba (timeout esperando botón EMITIR)",
+        });
+        continue;
+      }
+      const destino = `${this.descargasDir}/sim_${boleta.nombre.replace(/\s+/g, "_")}.pdf`;
+      await fs.writeFile(destino, pdfFalso);
+      resultados.push({ nombre: boleta.nombre, exito: true, pdfPath: destino });
+    }
+    return resultados;
+  }
+
   async runBatch(emisor: string, boletas: BoletaInput[]): Promise<BoletaResultado[]> {
     await this.start();
     try {

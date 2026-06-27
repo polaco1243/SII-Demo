@@ -50,9 +50,7 @@ async function processBatch(batch: typeof schema.batches.$inferSelect) {
   const clave = decrypt(credencial.claveEncrypted);
   const automation = new SIIAutomation(credencial.rut, clave, DESCARGAS_DIR, true);
 
-  const resultados = await automation.runBatch(
-    credencial.emisor,
-    filas.map((f) => ({
+  const filasParaEmitir = filas.map((f) => ({
       nombre: f.nombre,
       monto: f.monto,
       tipoBoleta: f.tipoBoleta,
@@ -66,8 +64,12 @@ async function processBatch(batch: typeof schema.batches.$inferSelect) {
       conDetalle: f.conDetalle,
       detalle: f.detalle,
       email: f.email,
-    })),
-  );
+  }));
+
+  const resultados =
+    process.env.SIMULAR_SII === "true"
+      ? await automation.runBatchSimulado(filasParaEmitir)
+      : await automation.runBatch(credencial.emisor, filasParaEmitir);
 
   let huboFallo = false;
   for (let i = 0; i < filas.length; i++) {
