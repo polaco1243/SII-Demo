@@ -13,7 +13,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-orange-700 text-sm font-semibold tracking-tighter text-white shadow-lg shadow-orange-900/20">
             SII
           </div>
-          <span className="text-lg font-medium tracking-tight text-text">E-Boleta</span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-lg font-medium tracking-tight text-text">E-Boleta</span>
+            <span className="text-[10px] font-medium uppercase tracking-wide text-faint">by QAR</span>
+          </div>
         </div>
 
         <DashboardNav />

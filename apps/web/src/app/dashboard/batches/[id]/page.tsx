@@ -82,7 +82,7 @@ async function cancelarBatch(formData: FormData) {
       .where(and(eq(schema.batches.id, batchId), eq(schema.batches.userId, userId), eq(schema.batches.status, "borrador")));
   });
 
-  redirect("/dashboard");
+  redirect("/dashboard/emisiones");
 }
 
 export default async function BatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -108,7 +108,7 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
   return (
     <div className="fade-in mx-auto max-w-2xl p-4 md:p-8">
       <AutoRefresh activo={hayTrabajoEnProceso} />
-      <a href="/dashboard" className="inline-block rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
+      <a href="/dashboard/emisiones" className="inline-block rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
         ← Volver
       </a>
       <h1 className="mb-1 mt-2 text-page">{batch.csvFilename}</h1>
