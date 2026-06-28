@@ -3,7 +3,7 @@ import { db } from "@sii-demo/db";
 
 export async function GET(request: Request) {
   const key = new URL(request.url).searchParams.get("key");
-  if (key !== process.env.AUTH_SECRET) {
+  if (key !== process.env.MIGRATE_KEY) {
     return new Response("Forbidden", { status: 403 });
   }
 
