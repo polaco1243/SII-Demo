@@ -192,7 +192,7 @@ export default async function NuevaEmisionPage({
   );
 
   return (
-    <div className="fade-in mx-auto max-w-2xl p-4 md:p-8">
+    <div className="fade-in mx-auto max-w-3xl p-4 md:p-8">
       <a href="/dashboard/emisiones" className="inline-block rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
         ← Volver a Emisiones
       </a>
@@ -202,14 +202,14 @@ export default async function NuevaEmisionPage({
         <div className="flex gap-2">
           <a
             href="/dashboard/credenciales"
-            className="rounded-md border border-border bg-white/5 px-3 py-1.5 text-sm font-medium text-text transition-colors hover:bg-white/10"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium transition-colors hover:bg-primary-hover"
           >
             Gestionar credenciales
           </a>
           <a
             href="/ejemplo-boletas.csv"
             download
-            className="rounded-md border border-border bg-white/5 px-3 py-1.5 text-sm font-medium text-text transition-colors hover:bg-white/10"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium transition-colors hover:bg-primary-hover"
           >
             Descargar CSV de ejemplo
           </a>

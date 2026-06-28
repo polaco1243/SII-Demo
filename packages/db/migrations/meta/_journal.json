@@ -43,6 +43,13 @@
       "when": 1782597156668,
       "tag": "0005_groovy_bullseye",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782630360564,
+      "tag": "0006_unique_black_tarantula",
+      "breakpoints": true
     }
   ]
 }

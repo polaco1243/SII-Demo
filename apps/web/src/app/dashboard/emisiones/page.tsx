@@ -1,8 +1,37 @@
-import { eq, desc, inArray } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { EmisionesExplorer } from "@/components/EmisionesExplorer";
+
+async function reintentarBoleta(formData: FormData) {
+  "use server";
+  const userId = await requireUserId();
+  const boletaId = String(formData.get("boletaId") ?? "");
+  const batchId = String(formData.get("batchId") ?? "");
+
+  await withUser(userId, async (tx) => {
+    const [batch] = await tx
+      .select()
+      .from(schema.batches)
+      .where(and(eq(schema.batches.id, batchId), eq(schema.batches.userId, userId)));
+
+    if (!batch) throw new Error("Batch no encontrado");
+
+    await tx
+      .update(schema.boletas)
+      .set({ status: "pending", errorMessage: null, updatedAt: new Date() })
+      .where(and(eq(schema.boletas.id, boletaId), eq(schema.boletas.batchId, batchId)));
+
+    await tx
+      .update(schema.batches)
+      .set({ status: "pending", errorMessage: null, finishedAt: null })
+      .where(eq(schema.batches.id, batchId));
+  });
+
+  redirect("/dashboard/emisiones");
+}
 
 export default async function EmisionesPage() {
   const userId = await requireUserId();
@@ -67,7 +96,7 @@ export default async function EmisionesPage() {
           .
         </p>
       ) : (
-        <EmisionesExplorer archivos={archivos} />
+        <EmisionesExplorer archivos={archivos} reintentarAction={reintentarBoleta} />
       )}
     </div>
   );

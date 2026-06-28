@@ -49,11 +49,14 @@ export default async function DashboardPage({
   const session = await auth();
   const email = session?.user?.email ?? "";
 
-  const { credenciales, batches, boletasPorBatch } = await withUser(userId, async (tx) => {
+  const { credenciales, batches, boletasPorBatch, nombreUsuario } = await withUser(userId, async (tx) => {
     const credenciales = await tx
       .select()
       .from(schema.siiCredentials)
       .where(eq(schema.siiCredentials.userId, userId));
+
+    const [usuario] = await tx.select().from(schema.users).where(eq(schema.users.id, userId));
+    const nombreUsuario = usuario?.nombre || null;
 
     const batches = await tx
       .select()
@@ -71,7 +74,7 @@ export default async function DashboardPage({
       boletasPorBatch.set(b.batchId, arr);
     }
 
-    return { credenciales, batches, boletasPorBatch };
+    return { credenciales, batches, boletasPorBatch, nombreUsuario };
   });
 
   const hayTrabajoEnProceso = batches.some((b) => b.status === "pending" || b.status === "running");
@@ -94,7 +97,7 @@ export default async function DashboardPage({
     .reduce((acc, b) => acc + b.monto, 0);
   const totalBoletas = boletasFiltradas.length;
   const tasaExito = totalBoletas > 0 ? Math.round((boletasEmitidas / totalBoletas) * 100) : 0;
-  const saludo = email ? email.split("@")[0] : "de nuevo";
+  const saludo = nombreUsuario || (email ? email.split("@")[0] : "de nuevo");
 
   // Proporciones reales para el mini gráfico de barras (success / failed / pending).
   // La altura de cada barra se normaliza contra el máximo, con un piso para que

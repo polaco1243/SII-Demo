@@ -81,6 +81,66 @@ function BarraProgreso({ boletas }: { boletas: Boleta[] }) {
   );
 }
 
+const TIPO_BOLETA_LABEL: Record<string, string> = { exenta: "Boleta exenta", afecta: "Boleta afecta" };
+const METODO_PAGO_LABEL: Record<string, string> = {
+  debito: "Débito",
+  credito: "Crédito",
+  efectivo: "Efectivo",
+  otro: "Otro",
+};
+
+function TarjetaBoleta({ b, reintentarAction }: { b: Boleta; reintentarAction?: (formData: FormData) => void }) {
+  return (
+    <li className="overflow-hidden rounded-md border border-border bg-sunken">
+      <details className="group/boleta">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-3 transition-colors hover:bg-surface-2/50">
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="text-accent transition-transform duration-200 group-open/boleta:rotate-90">▶</span>
+            <span className="min-w-0 truncate font-medium">{b.nombre}</span>
+            <span className="shrink-0 tabular-nums text-muted">${b.monto.toLocaleString("es-CL")}</span>
+          </span>
+          <span className="flex shrink-0 items-center gap-3">
+            <span className={`rounded-full border px-2 py-0.5 text-caption font-medium ${BOLETA_BADGE[b.status]}`}>
+              {BOLETA_LABEL[b.status]}
+            </span>
+            {b.status === "success" && (
+              <a
+                href={`/api/batches/${b.batchId}/pdf/${b.id}`}
+                className="rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover"
+                onClick={(e) => e.stopPropagation()}
+              >
+                PDF
+              </a>
+            )}
+            {b.status === "failed" && reintentarAction && (
+              <form action={reintentarAction} onClick={(e) => e.stopPropagation()}>
+                <input type="hidden" name="boletaId" value={b.id} />
+                <input type="hidden" name="batchId" value={b.batchId} />
+                <button type="submit" className="rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
+                  Reintentar
+                </button>
+              </form>
+            )}
+          </span>
+        </summary>
+
+        <div className="flex flex-col gap-1.5 border-t border-border p-3 text-sm text-muted">
+          <p>
+            {TIPO_BOLETA_LABEL[b.tipoBoleta] ?? b.tipoBoleta} — {METODO_PAGO_LABEL[b.metodoPago] ?? b.metodoPago}
+          </p>
+          {b.conReceptor && (
+            <p>
+              Receptor: {b.receptorNombre} ({b.receptorRut})
+            </p>
+          )}
+          {b.conDetalle && b.detalle && <p>Detalle: {b.detalle}</p>}
+          {b.status === "failed" && b.errorMessage && <p className="text-danger">{b.errorMessage}</p>}
+        </div>
+      </details>
+    </li>
+  );
+}
+
 function coincideBusqueda(archivo: Archivo, busqueda: string): boolean {
   if (!busqueda) return true;
   const q = busqueda.toLowerCase();
@@ -91,7 +151,13 @@ function coincideBusqueda(archivo: Archivo, busqueda: string): boolean {
   );
 }
 
-export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
+export function EmisionesExplorer({
+  archivos,
+  reintentarAction,
+}: {
+  archivos: Archivo[];
+  reintentarAction?: (formData: FormData) => void;
+}) {
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
 
@@ -206,63 +272,11 @@ export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
                             </span>
                           </summary>
 
-                          <div className="overflow-x-auto border-t border-border">
-                            <table className="w-full border-collapse text-left text-sm">
-                              <thead>
-                                <tr className="border-b border-border bg-white/[0.02] text-caption uppercase tracking-wide text-faint">
-                                  <th className="px-3 py-2 font-medium">Nombre</th>
-                                  <th className="px-3 py-2 text-right font-medium">Monto</th>
-                                  <th className="px-3 py-2 font-medium">Tipo</th>
-                                  <th className="px-3 py-2 font-medium">Método</th>
-                                  <th className="px-3 py-2 font-medium">Receptor</th>
-                                  <th className="px-3 py-2 font-medium">Detalle</th>
-                                  <th className="px-3 py-2 font-medium">Estado</th>
-                                  <th className="px-3 py-2 font-medium"></th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {archivo.boletas.map((b) => (
-                                  <tr
-                                    key={b.id}
-                                    className="border-b border-white/5 transition-colors last:border-b-0 hover:bg-white/[0.02]"
-                                  >
-                                    <td className="px-3 py-2 font-medium">{b.nombre}</td>
-                                    <td className="px-3 py-2 text-right tabular-nums">
-                                      ${b.monto.toLocaleString("es-CL")}
-                                    </td>
-                                    <td className="px-3 py-2 capitalize text-muted">{b.tipoBoleta}</td>
-                                    <td className="px-3 py-2 capitalize text-muted">{b.metodoPago}</td>
-                                    <td className="px-3 py-2 text-muted">
-                                      {b.conReceptor ? `${b.receptorNombre} (${b.receptorRut})` : "—"}
-                                    </td>
-                                    <td className="px-3 py-2 text-muted">{b.conDetalle ? b.detalle : "—"}</td>
-                                    <td className="px-3 py-2">
-                                      <span
-                                        className={`inline-block rounded-full border px-2 py-0.5 text-caption font-medium ${BOLETA_BADGE[b.status]}`}
-                                      >
-                                        {BOLETA_LABEL[b.status]}
-                                      </span>
-                                      {b.status === "failed" && b.errorMessage && (
-                                        <span className="ml-1 cursor-help text-caption text-faint" title={b.errorMessage}>
-                                          (ver detalle)
-                                        </span>
-                                      )}
-                                    </td>
-                                    <td className="px-3 py-2">
-                                      {b.status === "success" && (
-                                        <a
-                                          href={`/api/batches/${b.batchId}/pdf/${b.id}`}
-                                          className="rounded font-medium text-accent transition-colors hover:text-accent-hover"
-                                        >
-                                          PDF
-                                        </a>
-                                      )}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                          <ul className="flex flex-col gap-1.5 border-t border-border p-2">
+                            {archivo.boletas.map((b) => (
+                              <TarjetaBoleta key={b.id} b={b} reintentarAction={reintentarAction} />
+                            ))}
+                          </ul>
                         </details>
                       </li>
                     ))}
