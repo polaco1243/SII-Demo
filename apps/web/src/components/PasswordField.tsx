@@ -60,7 +60,7 @@ const REGLAS = [
   { test: (v: string) => /[^A-Za-z0-9]/.test(v), label: "1 símbolo" },
 ];
 
-export function PasswordChangeFields() {
+export function PasswordChangeFields({ children }: { children?: React.ReactNode }) {
   const [claveNueva, setClaveNueva] = useState("");
 
   return (
@@ -73,23 +73,26 @@ export function PasswordChangeFields() {
         value={claveNueva}
         onChange={setClaveNueva}
       />
-      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-        {REGLAS.map((r) => {
-          const ok = r.test(claveNueva);
-          return (
-            <li key={r.label} className={`flex items-center gap-1.5 ${ok ? "text-success" : ""}`}>
-              <span className={`flex h-3.5 w-3.5 items-center justify-center rounded-full border ${ok ? "border-success/40 bg-success/15" : "border-white/10 bg-white/5"}`}>
-                {ok && (
-                  <svg viewBox="0 0 20 20" fill="none" className="h-2 w-2" aria-hidden="true">
-                    <path d="M4 10.5 8 14.5 16 5.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </span>
-              {r.label}
-            </li>
-          );
-        })}
-      </ul>
+      <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-2">
+        <ul className="flex flex-col gap-1 text-xs text-muted">
+          {REGLAS.map((r) => {
+            const ok = r.test(claveNueva);
+            return (
+              <li key={r.label} className={`flex items-center gap-1.5 ${ok ? "text-success" : ""}`}>
+                <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border ${ok ? "border-success/40 bg-success/15" : "border-white/10 bg-white/5"}`}>
+                  {ok && (
+                    <svg viewBox="0 0 20 20" fill="none" className="h-2 w-2" aria-hidden="true">
+                      <path d="M4 10.5 8 14.5 16 5.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </span>
+                {r.label}
+              </li>
+            );
+          })}
+        </ul>
+        <div className="sm:justify-self-start">{children}</div>
+      </div>
     </div>
   );
 }

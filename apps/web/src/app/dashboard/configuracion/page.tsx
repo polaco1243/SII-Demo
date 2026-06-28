@@ -105,10 +105,11 @@ export default async function ConfiguracionPage({
       <section className="glass-card mt-3 rounded-2xl p-5 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]">
         <h2 className="mb-3 text-section">Contraseña</h2>
         <form action={cambiarClave} className="flex flex-col gap-3">
-          <PasswordChangeFields />
-          <button type="submit" className="btn-primary self-start rounded-md px-4 py-2 text-sm">
-            Cambiar contraseña
-          </button>
+          <PasswordChangeFields>
+            <button type="submit" className="btn-primary rounded-md px-4 py-2 text-sm">
+              Cambiar contraseña
+            </button>
+          </PasswordChangeFields>
         </form>
 
         <div className="mt-4 rounded-lg border border-accent/20 bg-accent/[0.06] p-3">

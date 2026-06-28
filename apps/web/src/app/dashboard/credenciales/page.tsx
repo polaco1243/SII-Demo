@@ -9,6 +9,7 @@ import { AutoRefresh } from "@/components/AutoRefresh";
 import { Spinner } from "@/components/Spinner";
 import { DropdownMenu } from "@/components/DropdownMenu";
 import { DismissibleBanner } from "@/components/DismissibleBanner";
+import { Tooltip } from "@/components/Tooltip";
 
 const RUT_EMISOR_RE = /^([\d.]+-[\dkK])\s+(.*)$/;
 
@@ -195,17 +196,19 @@ export default async function CredencialesPage({
             <span className="text-accent transition-transform duration-200 group-open:rotate-90">▶</span>
             <h2 className="text-section">Agregar credencial SII</h2>
           </span>
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-caption font-medium text-success shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)]">
-            <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3" aria-hidden="true">
-              <path
-                d="M10 2.5 4 5v4.5c0 3.5 2.4 6.4 6 7.5 3.6-1.1 6-4 6-7.5V5l-6-2.5Z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Cifrado AES-256
-          </span>
+          <Tooltip texto="Tu clave del SII se transforma con AES-256-GCM, el mismo estándar que usan bancos y gobiernos. Ni con acceso directo a la base de datos se puede leer tu clave sin la llave de cifrado del servidor.">
+            <span className="inline-flex shrink-0 cursor-help items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-caption font-medium text-success shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)]">
+              <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3" aria-hidden="true">
+                <path
+                  d="M10 2.5 4 5v4.5c0 3.5 2.4 6.4 6 7.5 3.6-1.1 6-4 6-7.5V5l-6-2.5Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Cifrado AES-256
+            </span>
+          </Tooltip>
         </summary>
 
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
