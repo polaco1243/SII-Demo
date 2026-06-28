@@ -4,7 +4,7 @@ import { parse } from "csv-parse/sync";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
 import { validarRut } from "@/lib/rut";
-import { signOut } from "@/auth";
+import { auth } from "@/auth";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { EmisionesExplorer } from "@/components/EmisionesExplorer";
 
@@ -180,6 +180,8 @@ export default async function DashboardPage({
 }) {
   const { error } = await searchParams;
   const userId = await requireUserId();
+  const session = await auth();
+  const email = session?.user?.email ?? "";
 
   const { credenciales, filas, boletasPorBatch } = await withUser(userId, async (tx) => {
     const credenciales = await tx
@@ -229,21 +231,119 @@ export default async function DashboardPage({
 
   const hayTrabajoEnProceso = archivos.some((b) => b.batchStatus === "pending" || b.batchStatus === "running");
 
+  // KPIs reales derivados de los datos ya consultados
+  const todasLasBoletas = archivos.flatMap((a) => a.boletas);
+  const credencialesActivas = credenciales.length; // siiCredentials: status=lista, activa=true
+  const boletasEmitidas = todasLasBoletas.filter((b) => b.status === "success").length; // boletas.status
+  const boletasConError = todasLasBoletas.filter((b) => b.status === "failed").length;
+  const boletasPendientes = todasLasBoletas.filter((b) => b.status === "pending").length;
+  const batchesPorConfirmar = archivos.filter((a) => a.batchStatus === "borrador").length;
+  const batchesEnProceso = archivos.filter(
+    (a) => a.batchStatus === "pending" || a.batchStatus === "running",
+  ).length;
+  // Monto total emitido (boletas.monto donde status=success)
+  const montoEmitido = todasLasBoletas
+    .filter((b) => b.status === "success")
+    .reduce((acc, b) => acc + b.monto, 0);
+  const totalBoletas = todasLasBoletas.length;
+  const tasaExito = totalBoletas > 0 ? Math.round((boletasEmitidas / totalBoletas) * 100) : 0;
+  const saludo = email ? email.split("@")[0] : "de nuevo";
+
   return (
-    <main className="fade-in mx-auto mt-12 max-w-2xl px-6 pb-16">
+    <div className="fade-in mx-auto max-w-7xl p-4 md:p-8">
       <AutoRefresh activo={hayTrabajoEnProceso} />
-      <div className="mb-8 flex items-center justify-between border-b border-border pb-5">
-        <h1 className="text-page">SII E-Boleta</h1>
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/login" });
-          }}
-        >
-          <button type="submit" className="rounded text-sm text-muted transition-colors hover:text-text">
-            Cerrar sesión
-          </button>
-        </form>
+
+      {/* Banner de bienvenida */}
+      <section className="relative mb-6 overflow-hidden rounded-xl border border-border bg-gradient-to-b from-surface-deep to-bg p-6 md:p-8">
+        <div className="pointer-events-none absolute right-0 top-0 -mr-20 -mt-20 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+        <div className="relative z-10 mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <h1 className="mb-2 text-xl font-medium tracking-tight text-text md:text-2xl">
+              Bienvenido, {saludo}
+            </h1>
+            <p className="max-w-xl text-sm text-muted">
+              Resumen de tus emisiones de boletas electrónicas SII.
+            </p>
+          </div>
+          <a
+            href="/dashboard/credenciales"
+            className="flex items-center gap-2 rounded-lg border border-border bg-white/5 px-4 py-2 text-sm font-medium text-text transition-colors hover:bg-white/10"
+          >
+            Gestionar credenciales
+          </a>
+        </div>
+        <div className="relative z-10 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <div className="rounded-lg border border-border bg-white/[0.02] p-4">
+            <h3 className="mb-1 text-xs text-faint">Credenciales activas</h3>
+            <div className="text-xl font-medium text-text">{credencialesActivas}</div>
+          </div>
+          <div className="rounded-lg border border-border bg-white/[0.02] p-4">
+            <h3 className="mb-1 text-xs text-faint">Boletas emitidas</h3>
+            <div className="text-xl font-medium text-text">{boletasEmitidas.toLocaleString("es-CL")}</div>
+          </div>
+          <div className="rounded-lg border border-border bg-white/[0.02] p-4">
+            <h3 className="mb-1 text-xs text-faint">Emisiones totales</h3>
+            <div className="text-xl font-medium text-text">{archivos.length}</div>
+          </div>
+          <div className="rounded-lg border border-border bg-white/[0.02] p-4">
+            <h3 className="mb-1 text-xs text-faint">Por confirmar</h3>
+            <div className="text-xl font-medium text-text">{batchesPorConfirmar}</div>
+          </div>
+        </div>
+      </section>
+
+      {/* KPI cards grandes */}
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="glass-panel rounded-lg p-5">
+          <div className="mb-4 flex items-start justify-between">
+            <p className="text-xs font-medium text-faint">Monto emitido</p>
+            {tasaExito > 0 && (
+              <span className="inline-flex items-center rounded bg-success/10 px-1.5 py-0.5 text-xs text-success">
+                {tasaExito}% éxito
+              </span>
+            )}
+          </div>
+          <div className="text-2xl font-medium tracking-tight text-text">
+            ${montoEmitido.toLocaleString("es-CL")}
+          </div>
+        </div>
+        <div className="glass-panel rounded-lg p-5">
+          <div className="mb-4 flex items-start justify-between">
+            <p className="text-xs font-medium text-faint">Boletas emitidas</p>
+            <span className="inline-flex items-center rounded bg-success/10 px-1.5 py-0.5 text-xs text-success">
+              OK
+            </span>
+          </div>
+          <div className="text-2xl font-medium tracking-tight text-text">
+            {boletasEmitidas.toLocaleString("es-CL")}
+          </div>
+        </div>
+        <div className="glass-panel rounded-lg p-5">
+          <div className="mb-4 flex items-start justify-between">
+            <p className="text-xs font-medium text-faint">Con error</p>
+            {boletasConError > 0 && (
+              <span className="inline-flex items-center rounded bg-danger/10 px-1.5 py-0.5 text-xs text-danger">
+                revisar
+              </span>
+            )}
+          </div>
+          <div className="text-2xl font-medium tracking-tight text-text">
+            {boletasConError.toLocaleString("es-CL")}
+          </div>
+        </div>
+        <div className="glass-panel rounded-lg p-5">
+          <div className="mb-4 flex items-start justify-between">
+            <p className="text-xs font-medium text-faint">Pendientes / en proceso</p>
+            {batchesEnProceso > 0 && (
+              <span className="inline-flex items-center rounded bg-info/10 px-1.5 py-0.5 text-xs text-accent">
+                activo
+              </span>
+            )}
+          </div>
+          <div className="text-2xl font-medium tracking-tight text-text">
+            {(boletasPendientes + batchesEnProceso).toLocaleString("es-CL")}
+          </div>
+        </div>
       </div>
 
       {error === "faltan_datos" && (
@@ -253,7 +353,8 @@ export default async function DashboardPage({
         <p className="mb-4 text-sm text-danger">CSV inválido: {error}</p>
       )}
 
-      <section className="glass-panel mb-10 rounded-card p-6 shadow-card">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <section className="glass-panel rounded-card p-6 shadow-card lg:col-span-1">
         <h2 className="mb-4 text-section">Nueva emisión por CSV</h2>
         {credenciales.length === 0 ? (
           <p className="text-sm text-muted">
@@ -301,7 +402,7 @@ export default async function DashboardPage({
         </div>
       </section>
 
-      <section>
+      <section className="lg:col-span-2">
         <h2 className="mb-4 text-section">Emisiones</h2>
         {archivos.length === 0 ? (
           <p className="rounded-card border border-dashed border-border bg-surface/40 px-4 py-8 text-center text-sm text-muted">
@@ -311,6 +412,7 @@ export default async function DashboardPage({
           <EmisionesExplorer archivos={archivos} />
         )}
       </section>
-    </main>
+      </div>
+    </div>
   );
 }

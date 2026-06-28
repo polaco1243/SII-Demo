@@ -171,12 +171,9 @@ export default async function CredencialesPage({
   }
 
   return (
-    <main className="fade-in mx-auto mt-12 max-w-2xl px-6 pb-16">
+    <div className="fade-in mx-auto max-w-3xl p-4 md:p-8">
       <AutoRefresh activo={hayTrabajoEnProceso} />
-      <a href="/dashboard" className="inline-block rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
-        ← Volver
-      </a>
-      <h1 className="mb-6 mt-2 border-b border-border pb-5 text-page">Credenciales SII</h1>
+      <h1 className="mb-6 border-b border-border pb-5 text-page">Credenciales SII</h1>
 
       {error === "campos" && <p className="mb-4 text-sm text-danger">Completa RUT y clave</p>}
       {error === "rut_invalido" && (
@@ -393,6 +390,6 @@ export default async function CredencialesPage({
           La clave se cifra antes de guardarse. Tras verificarla, vas a elegir con qué emisor(es) emitir.
         </p>
       </section>
-    </main>
+    </div>
   );
 }

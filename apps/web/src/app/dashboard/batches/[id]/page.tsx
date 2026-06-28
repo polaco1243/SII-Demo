@@ -106,7 +106,7 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
   const hayTrabajoEnProceso = batch.status === "pending" || batch.status === "running";
 
   return (
-    <main className="fade-in mx-auto mt-12 max-w-2xl px-6 pb-16">
+    <div className="fade-in mx-auto max-w-2xl p-4 md:p-8">
       <AutoRefresh activo={hayTrabajoEnProceso} />
       <a href="/dashboard" className="inline-block rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
         ← Volver
@@ -181,6 +181,6 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
           </li>
         ))}
       </ul>
-    </main>
+    </div>
   );
 }

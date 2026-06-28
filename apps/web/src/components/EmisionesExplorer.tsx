@@ -175,7 +175,7 @@ export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
                                 {archivo.boletas.map((b) => (
                                   <tr
                                     key={b.id}
-                                    className="border-b border-border/60 last:border-b-0 odd:bg-white/[0.015] hover:bg-white/[0.04]"
+                                    className="border-b border-white/5 transition-colors last:border-b-0 hover:bg-white/[0.02]"
                                   >
                                     <td className="px-3 py-2 font-medium">{b.nombre}</td>
                                     <td className="px-3 py-2 text-right tabular-nums">
