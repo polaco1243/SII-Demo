@@ -201,16 +201,15 @@ export default async function NuevaEmisionPage({
         <h1 className="text-page">Nueva emisión por CSV</h1>
         <div className="flex gap-2">
           <a
-            href="/dashboard/credenciales"
-            className="btn-primary rounded-md px-4 py-2 text-sm"
-          >
-            Gestionar credenciales
-          </a>
-          <a
             href="/ejemplo-boletas.csv"
             download
-            className="btn-primary rounded-md px-4 py-2 text-sm"
+            className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-medium text-[#d4d4d8] transition-colors hover:bg-white/[0.1] hover:text-white"
           >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <path d="M12 3v12" />
+              <path d="m7 10 5 5 5-5" />
+              <path d="M5 21h14" />
+            </svg>
             Descargar CSV de ejemplo
           </a>
         </div>

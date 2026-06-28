@@ -36,8 +36,9 @@
 
 @layer components {
   /* Glassmorphism: superficie translúcida con blur, en vez de gris sólido. */
-  .glass-panel {
-    background: rgba(255, 255, 255, 0.03);
+  .glass-panel,
+  .glass-card {
+    background: #ffffff09;
     border: 1px solid rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(10px);
   }

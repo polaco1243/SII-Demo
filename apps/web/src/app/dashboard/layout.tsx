@@ -1,3 +1,5 @@
+import { eq } from "drizzle-orm";
+import { db, schema } from "@sii-demo/db";
 import { auth, signOut } from "@/auth";
 import { DashboardNav } from "@/components/DashboardNav";
 import { BrandMark } from "@/components/BrandMark";
@@ -5,7 +7,11 @@ import { BrandMark } from "@/components/BrandMark";
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   const email = session?.user?.email ?? "";
-  const inicial = email.charAt(0).toUpperCase() || "U";
+  const userId = session?.user?.id;
+
+  const [usuario] = userId ? await db.select().from(schema.users).where(eq(schema.users.id, userId)) : [];
+  const nombreMostrado = usuario?.nombre || email;
+  const inicial = nombreMostrado.charAt(0).toUpperCase() || "U";
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -17,13 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           >
             Q
           </span>
-          <div className="flex flex-col items-start gap-1.5 leading-tight">
-            <span className="text-lg font-medium tracking-tight text-text">E-Boleta</span>
-            <span className="brand-pill px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted">
-              <span className="brand-pill__dot" aria-hidden="true" />
-              by QAR
-            </span>
-          </div>
+          <span className="font-head text-lg font-medium tracking-tight text-text">E-Boleta</span>
         </div>
 
         <DashboardNav />
@@ -36,29 +36,41 @@ export default async function DashboardLayout({ children }: { children: React.Re
               </div>
               <div className="flex min-w-0 flex-col text-left">
                 <span className="truncate text-xs font-medium text-text" title={email}>
-                  {email || "Sesión activa"}
+                  {nombreMostrado || "Sesión activa"}
                 </span>
                 <span className="text-[10px] text-faint">Cuenta SII</span>
               </div>
             </div>
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/login" });
-              }}
-            >
-              <button
-                type="submit"
-                title="Cerrar sesión"
+            <div className="flex shrink-0 items-center gap-1">
+              <a
+                href="/dashboard/configuracion"
+                title="Configuración"
                 className="rounded p-1.5 text-muted transition-colors hover:bg-white/5 hover:text-text"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
                 </svg>
-              </button>
-            </form>
+              </a>
+              <form
+                action={async () => {
+                  "use server";
+                  await signOut({ redirectTo: "/login" });
+                }}
+              >
+                <button
+                  type="submit"
+                  title="Cerrar sesión"
+                  className="rounded p-1.5 text-muted transition-colors hover:bg-white/5 hover:text-text"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </aside>

@@ -89,41 +89,55 @@ const METODO_PAGO_LABEL: Record<string, string> = {
   otro: "Otro",
 };
 
-function TarjetaBoleta({ b, reintentarAction }: { b: Boleta; reintentarAction?: (formData: FormData) => void }) {
+function TarjetaBoleta({
+  b,
+  abierta,
+  onToggle,
+  reintentarAction,
+}: {
+  b: Boleta;
+  abierta: boolean;
+  onToggle: () => void;
+  reintentarAction?: (formData: FormData) => void;
+}) {
   return (
     <li className="overflow-hidden rounded-md border border-border bg-sunken">
-      <details className="group/boleta">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-3 transition-colors hover:bg-surface-2/50">
-          <span className="flex min-w-0 items-center gap-3">
-            <span className="text-accent transition-transform duration-200 group-open/boleta:rotate-90">▶</span>
-            <span className="min-w-0 truncate font-medium">{b.nombre}</span>
-            <span className="shrink-0 tabular-nums text-muted">${b.monto.toLocaleString("es-CL")}</span>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full cursor-pointer items-center justify-between gap-3 p-3 text-left transition-colors hover:bg-surface-2/50"
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <span className={`text-accent transition-transform duration-200 ${abierta ? "rotate-90" : ""}`}>▶</span>
+          <span className="min-w-0 truncate font-medium">{b.nombre}</span>
+          <span className="shrink-0 tabular-nums text-muted">${b.monto.toLocaleString("es-CL")}</span>
+        </span>
+        <span className="flex shrink-0 items-center gap-3">
+          <span className={`rounded-full border px-2 py-0.5 text-caption font-medium ${BOLETA_BADGE[b.status]}`}>
+            {BOLETA_LABEL[b.status]}
           </span>
-          <span className="flex shrink-0 items-center gap-3">
-            <span className={`rounded-full border px-2 py-0.5 text-caption font-medium ${BOLETA_BADGE[b.status]}`}>
-              {BOLETA_LABEL[b.status]}
-            </span>
-            {b.status === "success" && (
-              <a
-                href={`/api/batches/${b.batchId}/pdf/${b.id}`}
-                className="rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover"
-                onClick={(e) => e.stopPropagation()}
-              >
-                PDF
-              </a>
-            )}
-            {b.status === "failed" && reintentarAction && (
-              <form action={reintentarAction} onClick={(e) => e.stopPropagation()}>
-                <input type="hidden" name="boletaId" value={b.id} />
-                <input type="hidden" name="batchId" value={b.batchId} />
-                <button type="submit" className="rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
-                  Reintentar
-                </button>
-              </form>
-            )}
-          </span>
-        </summary>
+          {b.status === "success" && (
+            <a
+              href={`/api/batches/${b.batchId}/pdf/${b.id}`}
+              className="rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover"
+              onClick={(e) => e.stopPropagation()}
+            >
+              PDF
+            </a>
+          )}
+          {b.status === "failed" && reintentarAction && (
+            <form action={reintentarAction} onClick={(e) => e.stopPropagation()}>
+              <input type="hidden" name="boletaId" value={b.id} />
+              <input type="hidden" name="batchId" value={b.batchId} />
+              <button type="submit" className="rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
+                Reintentar
+              </button>
+            </form>
+          )}
+        </span>
+      </button>
 
+      {abierta && (
         <div className="flex flex-col gap-1.5 border-t border-border p-3 text-sm text-muted">
           <p>
             {TIPO_BOLETA_LABEL[b.tipoBoleta] ?? b.tipoBoleta} — {METODO_PAGO_LABEL[b.metodoPago] ?? b.metodoPago}
@@ -136,7 +150,7 @@ function TarjetaBoleta({ b, reintentarAction }: { b: Boleta; reintentarAction?: 
           {b.conDetalle && b.detalle && <p>Detalle: {b.detalle}</p>}
           {b.status === "failed" && b.errorMessage && <p className="text-danger">{b.errorMessage}</p>}
         </div>
-      </details>
+      )}
     </li>
   );
 }
@@ -160,6 +174,10 @@ export function EmisionesExplorer({
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
+  // Solo un archivo expandido por grupo de razón social, y solo una boleta
+  // expandida por archivo — evita que la página se alargue indefinidamente.
+  const [archivoAbierto, setArchivoAbierto] = useState<Record<string, string | null>>({});
+  const [boletaAbierta, setBoletaAbierta] = useState<Record<string, string | null>>({});
 
   const conteosPorEstado = useMemo(() => {
     const conteos: Record<string, number> = {};
@@ -224,67 +242,97 @@ export function EmisionesExplorer({
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {grupos.map((grupo) => (
-            <li
-              key={`${grupo.rut}|${grupo.razonSocial}`}
-              className="glass-panel gradient-border bento-card overflow-hidden rounded-xl shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]"
-            >
-              <details open className="group">
-                <summary className="flex cursor-pointer list-none items-center gap-3 p-4 transition-colors hover:bg-surface-2">
-                  <span className="text-accent transition-transform duration-200 group-open:rotate-90">▶</span>
-                  <div>
-                    <p className="font-medium">{grupo.razonSocial}</p>
-                    <p className="text-sm text-muted">
-                      RUT {grupo.rut} — {grupo.archivos.length} archivo{grupo.archivos.length === 1 ? "" : "s"}
-                    </p>
+          {grupos.map((grupo) => {
+            const grupoKey = `${grupo.rut}|${grupo.razonSocial}`;
+            const batchIdAbierto = archivoAbierto[grupoKey] ?? null;
+
+            return (
+              <li
+                key={grupoKey}
+                className="glass-panel gradient-border bento-card overflow-hidden rounded-xl shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]"
+              >
+                <details open className="group">
+                  <summary className="flex cursor-pointer list-none items-center gap-3 p-4 transition-colors hover:bg-surface-2">
+                    <span className="text-accent transition-transform duration-200 group-open:rotate-90">▶</span>
+                    <div>
+                      <p className="font-medium">{grupo.razonSocial}</p>
+                      <p className="text-sm text-muted">
+                        RUT {grupo.rut} — {grupo.archivos.length} archivo{grupo.archivos.length === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                  </summary>
+
+                  <div className="border-t border-border p-4">
+                    <ul className="flex flex-col gap-2">
+                      {grupo.archivos.map((archivo) => {
+                        const abierto = batchIdAbierto === archivo.batchId;
+                        const boletaIdAbierta = boletaAbierta[archivo.batchId] ?? null;
+
+                        return (
+                          <li key={archivo.batchId} className="overflow-hidden rounded-md border border-border bg-sunken">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setArchivoAbierto((prev) => ({
+                                  ...prev,
+                                  [grupoKey]: prev[grupoKey] === archivo.batchId ? null : archivo.batchId,
+                                }))
+                              }
+                              className="flex w-full cursor-pointer items-center justify-between gap-3 p-3 text-left transition-colors hover:bg-surface-2/50"
+                            >
+                              <span className="flex min-w-0 items-center gap-3">
+                                <span className={`text-accent transition-transform duration-200 ${abierto ? "rotate-90" : ""}`}>
+                                  ▶
+                                </span>
+                                <span className="truncate font-medium">{archivo.csvFilename}</span>
+                                <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-caption text-muted">
+                                  {archivo.boletas.length} boleta{archivo.boletas.length === 1 ? "" : "s"}
+                                </span>
+                              </span>
+                              <span className="flex shrink-0 items-center gap-3">
+                                <BarraProgreso boletas={archivo.boletas} />
+                                <span
+                                  className={`rounded-full border px-2.5 py-0.5 text-caption font-medium ${BATCH_BADGE[archivo.batchStatus]}`}
+                                >
+                                  {BATCH_LABEL[archivo.batchStatus]}
+                                </span>
+                                <a
+                                  href={`/dashboard/batches/${archivo.batchId}`}
+                                  className="rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Abrir
+                                </a>
+                              </span>
+                            </button>
+
+                            {abierto && (
+                              <ul className="flex flex-col gap-1.5 border-t border-border p-2">
+                                {archivo.boletas.map((b) => (
+                                  <TarjetaBoleta
+                                    key={b.id}
+                                    b={b}
+                                    abierta={boletaIdAbierta === b.id}
+                                    onToggle={() =>
+                                      setBoletaAbierta((prev) => ({
+                                        ...prev,
+                                        [archivo.batchId]: prev[archivo.batchId] === b.id ? null : b.id,
+                                      }))
+                                    }
+                                    reintentarAction={reintentarAction}
+                                  />
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
-                </summary>
-
-                <div className="border-t border-border p-4">
-                  <ul className="flex flex-col gap-2">
-                    {grupo.archivos.map((archivo) => (
-                      <li key={archivo.batchId} className="overflow-hidden rounded-md border border-border bg-sunken">
-                        <details className="group/file">
-                          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-3 transition-colors hover:bg-surface-2/50">
-                            <span className="flex min-w-0 items-center gap-3">
-                              <span className="text-accent transition-transform duration-200 group-open/file:rotate-90">
-                                ▶
-                              </span>
-                              <span className="truncate font-medium">{archivo.csvFilename}</span>
-                              <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-caption text-muted">
-                                {archivo.boletas.length} boleta{archivo.boletas.length === 1 ? "" : "s"}
-                              </span>
-                            </span>
-                            <span className="flex shrink-0 items-center gap-3">
-                              <BarraProgreso boletas={archivo.boletas} />
-                              <span
-                                className={`rounded-full border px-2.5 py-0.5 text-caption font-medium ${BATCH_BADGE[archivo.batchStatus]}`}
-                              >
-                                {BATCH_LABEL[archivo.batchStatus]}
-                              </span>
-                              <a
-                                href={`/dashboard/batches/${archivo.batchId}`}
-                                className="rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                Abrir
-                              </a>
-                            </span>
-                          </summary>
-
-                          <ul className="flex flex-col gap-1.5 border-t border-border p-2">
-                            {archivo.boletas.map((b) => (
-                              <TarjetaBoleta key={b.id} b={b} reintentarAction={reintentarAction} />
-                            ))}
-                          </ul>
-                        </details>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </details>
-            </li>
-          ))}
+                </details>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

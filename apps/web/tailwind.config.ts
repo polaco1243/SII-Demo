@@ -6,7 +6,7 @@ const config: Config = {
     extend: {
       colors: {
         // Aura Affiliate — near-black base
-        bg: "#050505",
+        bg: "#05080f",
         "surface-deep": "#0a0a0a",
         surface: "#171717", // sólido: inputs/selects/popovers (no glass)
         "surface-2": "#1f1f1f", // hover sobre superficie sólida
@@ -30,6 +30,9 @@ const config: Config = {
         text: "#ffffff",
         muted: "#a3a3a3",
         faint: "#525252",
+      },
+      fontFamily: {
+        head: ["var(--font-head)"],
       },
       fontSize: {
         caption: ["0.75rem", { lineHeight: "1rem" }],
