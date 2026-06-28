@@ -30,7 +30,7 @@ export default async function RegisterPage({
   const { error } = await searchParams;
 
   return (
-    <main className="mx-auto mt-24 max-w-sm rounded-card border border-border bg-surface p-8 shadow-card">
+    <main className="glass-panel fade-in mx-auto mt-24 max-w-sm rounded-card p-8 shadow-card">
       <h1 className="mb-6 text-page">Crear cuenta</h1>
       {error === "correo_en_uso" && (
         <p className="mb-4 text-sm text-danger">Ese correo ya está registrado</p>

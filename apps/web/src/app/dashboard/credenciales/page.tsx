@@ -171,7 +171,7 @@ export default async function CredencialesPage({
   }
 
   return (
-    <main className="mx-auto mt-12 max-w-2xl px-6 pb-16">
+    <main className="fade-in mx-auto mt-12 max-w-2xl px-6 pb-16">
       <AutoRefresh activo={hayTrabajoEnProceso} />
       <a href="/dashboard" className="inline-block rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
         ← Volver
@@ -210,7 +210,7 @@ export default async function CredencialesPage({
               const necesitaAtencion = porConfirmar.length > 0 || conError.length > 0;
 
               return (
-                <li key={rut} className="overflow-hidden rounded-card border border-border bg-surface shadow-card">
+                <li key={rut} className="glass-panel overflow-hidden rounded-card shadow-card">
                   <details open={editandoEsteRut || necesitaAtencion} className="group">
                     <summary className="flex cursor-pointer list-none items-center justify-between p-4 transition-colors hover:bg-surface-2">
                       <span className="flex items-center gap-3">
@@ -366,7 +366,7 @@ export default async function CredencialesPage({
         </div>
       )}
 
-      <section className="rounded-card border border-border bg-surface p-6 shadow-card">
+      <section className="glass-panel rounded-card p-6 shadow-card">
         <h2 className="mb-4 text-section">Agregar credencial SII</h2>
         <form action={agregarCredencial} className="flex flex-col gap-4">
           <input

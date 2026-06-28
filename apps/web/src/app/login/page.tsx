@@ -26,7 +26,7 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="mx-auto mt-24 max-w-sm rounded-card border border-border bg-surface p-8 shadow-card">
+    <main className="glass-panel fade-in mx-auto mt-24 max-w-sm rounded-card p-8 shadow-card">
       <h1 className="mb-6 text-page">Iniciar sesión</h1>
       {error && <p className="mb-4 text-sm text-danger">Correo o contraseña incorrectos</p>}
       <form action={login} className="flex flex-col gap-4">

@@ -230,7 +230,7 @@ export default async function DashboardPage({
   const hayTrabajoEnProceso = archivos.some((b) => b.batchStatus === "pending" || b.batchStatus === "running");
 
   return (
-    <main className="mx-auto mt-12 max-w-2xl px-6 pb-16">
+    <main className="fade-in mx-auto mt-12 max-w-2xl px-6 pb-16">
       <AutoRefresh activo={hayTrabajoEnProceso} />
       <div className="mb-8 flex items-center justify-between border-b border-border pb-5">
         <h1 className="text-page">SII E-Boleta</h1>
@@ -253,7 +253,7 @@ export default async function DashboardPage({
         <p className="mb-4 text-sm text-danger">CSV inválido: {error}</p>
       )}
 
-      <section className="mb-10 rounded-card border border-border bg-surface p-6 shadow-card">
+      <section className="glass-panel mb-10 rounded-card p-6 shadow-card">
         <h2 className="mb-4 text-section">Nueva emisión por CSV</h2>
         {credenciales.length === 0 ? (
           <p className="text-sm text-muted">

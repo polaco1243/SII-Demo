@@ -5,50 +5,48 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Superficies (de más oscura a más clara)
-        bg: "#1a1a2e", // fondo base de la app
-        surface: "#16213e", // tarjetas / paneles
-        "surface-2": "#1c2c52", // superficie elevada: filas internas, hover de menús
-        sunken: "#141d33", // superficie hundida: inputs sobre una card, wells
+        // Aura Affiliate — near-black base
+        bg: "#050505",
+        "surface-deep": "#0a0a0a",
+        surface: "#171717", // sólido: inputs/selects/popovers (no glass)
+        "surface-2": "#1f1f1f", // hover sobre superficie sólida
+        sunken: "#121212",
 
-        // Bordes
-        border: "#1f3460",
-        "border-strong": "#2a4575", // borde de input enfocado / divisores destacados
+        border: "rgba(255,255,255,0.08)",
+        "border-strong": "rgba(255,255,255,0.16)",
 
-        // Marca / acciones
-        primary: "#0f4c75", // botón primario (fondo)
-        "primary-hover": "#15639a", // hover del botón primario (sube contraste vs #3282b8)
-        accent: "#3282b8", // enlaces, chevrons, foco, énfasis interactivo
-        "accent-hover": "#54a3d6",
+        // Marca: naranja
+        primary: "#ea580c",
+        "primary-hover": "#f97316",
+        accent: "#f97316", // links, chevrons, énfasis interactivo
+        "accent-hover": "#fb923c",
 
         // Estados semánticos
-        danger: "#f87171",
-        success: "#4ade80",
-        warning: "#fbbf24",
-        info: "#3282b8",
+        danger: "#ef4444",
+        success: "#10b981", // emerald — reservado para "positivo"/"emitida"
+        warning: "#f97316", // "requiere acción" = llamado a la acción, mismo naranja de marca
+        info: "#a855f7", // procesando / en curso
 
-        // Texto
-        text: "#eaeaea", // texto principal
-        muted: "#aeb9cc", // texto secundario (AA sobre todas las superficies)
-        faint: "#8793aa", // texto terciario / placeholders
+        text: "#ffffff",
+        muted: "#a3a3a3",
+        faint: "#525252",
       },
       fontSize: {
-        // Escala tipográfica con line-heights coherentes
-        caption: ["0.75rem", { lineHeight: "1rem" }], // 12px — badges, hints
-        sm: ["0.875rem", { lineHeight: "1.35rem" }], // 14px — body secundario, tablas
-        base: ["1rem", { lineHeight: "1.55rem" }], // 16px — body
-        "section": ["1.0625rem", { lineHeight: "1.5rem", fontWeight: "600" }], // 17px — títulos de sección
-        "page": ["1.375rem", { lineHeight: "1.85rem", letterSpacing: "-0.01em", fontWeight: "600" }], // 22px — H1
+        caption: ["0.75rem", { lineHeight: "1rem" }],
+        sm: ["0.875rem", { lineHeight: "1.35rem" }],
+        base: ["1rem", { lineHeight: "1.55rem" }],
+        section: ["1.0625rem", { lineHeight: "1.5rem", fontWeight: "500" }],
+        page: ["1.5rem", { lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "500" }],
       },
       borderRadius: {
-        card: "0.625rem", // 10px — tarjetas/paneles
+        card: "0.75rem",
       },
       boxShadow: {
-        card: "0 1px 2px rgba(0,0,0,0.25)",
-        pop: "0 8px 24px rgba(0,0,0,0.45)",
+        card: "0 1px 2px rgba(0,0,0,0.4)",
+        pop: "0 8px 24px rgba(0,0,0,0.6)",
       },
       ringColor: {
-        focus: "#54a3d6",
+        focus: "#f97316",
       },
     },
   },

@@ -114,7 +114,7 @@ export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
       ) : (
         <ul className="flex flex-col gap-3">
           {grupos.map((grupo) => (
-            <li key={`${grupo.rut}|${grupo.razonSocial}`} className="overflow-hidden rounded-card border border-border bg-surface shadow-card">
+            <li key={`${grupo.rut}|${grupo.razonSocial}`} className="glass-panel overflow-hidden rounded-card shadow-card">
               <details open className="group">
                 <summary className="flex cursor-pointer list-none items-center gap-3 p-4 transition-colors hover:bg-surface-2">
                   <span className="text-accent transition-transform duration-200 group-open:rotate-90">▶</span>
@@ -160,7 +160,7 @@ export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
                           <div className="overflow-x-auto border-t border-border">
                             <table className="w-full border-collapse text-left text-sm">
                               <thead>
-                                <tr className="border-b border-border bg-surface text-caption uppercase tracking-wide text-faint">
+                                <tr className="border-b border-border bg-white/[0.02] text-caption uppercase tracking-wide text-faint">
                                   <th className="px-3 py-2 font-medium">Nombre</th>
                                   <th className="px-3 py-2 text-right font-medium">Monto</th>
                                   <th className="px-3 py-2 font-medium">Tipo</th>
@@ -175,7 +175,7 @@ export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
                                 {archivo.boletas.map((b) => (
                                   <tr
                                     key={b.id}
-                                    className="border-b border-border/60 last:border-b-0 odd:bg-surface/30 hover:bg-surface-2/40"
+                                    className="border-b border-border/60 last:border-b-0 odd:bg-white/[0.015] hover:bg-white/[0.04]"
                                   >
                                     <td className="px-3 py-2 font-medium">{b.nombre}</td>
                                     <td className="px-3 py-2 text-right tabular-nums">

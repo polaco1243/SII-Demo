@@ -106,7 +106,7 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
   const hayTrabajoEnProceso = batch.status === "pending" || batch.status === "running";
 
   return (
-    <main className="mx-auto mt-12 max-w-2xl px-6 pb-16">
+    <main className="fade-in mx-auto mt-12 max-w-2xl px-6 pb-16">
       <AutoRefresh activo={hayTrabajoEnProceso} />
       <a href="/dashboard" className="inline-block rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
         ← Volver
@@ -142,7 +142,7 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
         {boletas.map((b) => (
           <li
             key={b.id}
-            className="flex items-center justify-between gap-4 rounded-card border border-border bg-surface p-4 shadow-card"
+            className="glass-panel flex items-center justify-between gap-4 rounded-card p-4 shadow-card"
           >
             <div className="min-w-0">
               <p className="font-medium">{b.nombre}</p>
