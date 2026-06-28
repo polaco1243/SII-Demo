@@ -4,6 +4,7 @@ import { parse } from "csv-parse/sync";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
 import { validarRut } from "@/lib/rut";
+import { FileChipInput } from "@/components/FileChipInput";
 
 interface FilaCsv {
   RutContribuyente: string;
@@ -197,7 +198,7 @@ export default async function NuevaEmisionPage({
         ← Volver a Emisiones
       </a>
 
-      <div className="mb-6 mt-2 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-5">
+      <div className="mb-4 mt-2 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <h1 className="text-page">Nueva emisión por CSV</h1>
         <div className="flex gap-2">
           <a
@@ -222,8 +223,8 @@ export default async function NuevaEmisionPage({
         <p className="mb-4 text-sm text-danger">CSV inválido: {error}</p>
       )}
 
-      <section className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/70 to-black p-6 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]">
-        <h2 className="mb-4 text-section">Datos del archivo</h2>
+      <section className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/70 to-black p-5 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]">
+        <h2 className="mb-3 text-section">Datos del archivo</h2>
         {credenciales.length === 0 ? (
           <p className="text-sm text-muted">
             Primero agrega una{" "}
@@ -233,7 +234,7 @@ export default async function NuevaEmisionPage({
             .
           </p>
         ) : (
-          <form action={subirCsv} className="flex flex-col gap-4">
+          <form action={subirCsv} className="flex flex-col gap-3">
             <select
               name="siiCredentialId"
               required
@@ -245,16 +246,10 @@ export default async function NuevaEmisionPage({
                 </option>
               ))}
             </select>
-            <input
-              name="csv"
-              type="file"
-              accept=".csv"
-              required
-              className="text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text hover:file:bg-border"
-            />
+            <FileChipInput />
             <button
               type="submit"
-              className="btn-primary rounded-md px-3 py-2"
+              className="btn-primary self-start rounded-md px-3 py-2"
             >
               Subir y encolar
             </button>
@@ -262,9 +257,9 @@ export default async function NuevaEmisionPage({
         )}
       </section>
 
-      <aside className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-6 backdrop-blur-xl">
-        <h2 className="mb-4 text-section">Tu CSV debe cumplir</h2>
-        <ul className="flex flex-col gap-3.5 text-sm text-muted">
+      <aside className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-5 backdrop-blur-xl">
+        <h2 className="mb-3 text-section">Tu CSV debe cumplir</h2>
+        <ul className="flex flex-col gap-2.5 text-sm text-muted">
           {[
             "RutContribuyente debe coincidir con el emisor seleccionado",
             "Receptor y ConDetalle van con SI/NO",

@@ -17,18 +17,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-screen flex-col md:flex-row">
       <aside className="sticky top-0 z-50 flex h-auto w-full shrink-0 flex-col border-b border-border bg-surface-deep/50 backdrop-blur-sm md:h-screen md:w-64 md:border-b-0 md:border-r">
         <div className="flex items-center gap-3 p-6">
-          <span
-            aria-hidden="true"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-accent/35 bg-gradient-to-br from-accent/25 to-primary/15 text-xs font-bold text-accent"
-          >
-            Q
+          <BrandMark size="sm" showLabel={false} />
+          <span className="font-head text-lg tracking-tight text-text" style={{ fontWeight: 700, letterSpacing: "0.02em" }}>
+            E-Boleta
           </span>
-          <span className="font-head text-lg font-medium tracking-tight text-text">E-Boleta</span>
         </div>
 
         <DashboardNav />
 
-        <div className="border-t border-border p-4">
+        <div className="border-t border-border bg-bg p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface-2 text-xs text-text">
@@ -77,7 +74,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       <main className="flex h-screen flex-1 flex-col overflow-y-auto scroll-smooth">
         <div className="flex-1">{children}</div>
-        <footer className="border-t border-border px-4 py-4 md:px-8">
+        <footer className="border-t border-border px-4 py-4 md:px-8" style={{ background: "#050505" }}>
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
             <BrandMark size="sm" />
             <p className="text-[11px] text-faint">© 2026 QAR Studio · Desarrollo web &amp; soluciones digitales</p>

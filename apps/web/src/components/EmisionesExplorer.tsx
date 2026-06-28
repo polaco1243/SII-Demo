@@ -101,7 +101,7 @@ function TarjetaBoleta({
   reintentarAction?: (formData: FormData) => void;
 }) {
   return (
-    <li className="overflow-hidden rounded-md border border-border bg-sunken">
+    <li className="overflow-hidden rounded-md border border-border-strong bg-white/[0.08]">
       <button
         type="button"
         onClick={onToggle}
@@ -269,7 +269,7 @@ export function EmisionesExplorer({
                         const boletaIdAbierta = boletaAbierta[archivo.batchId] ?? null;
 
                         return (
-                          <li key={archivo.batchId} className="overflow-hidden rounded-md border border-border bg-sunken">
+                          <li key={archivo.batchId} className="overflow-hidden rounded-md border border-border bg-white/[0.05]">
                             <button
                               type="button"
                               onClick={() =>
