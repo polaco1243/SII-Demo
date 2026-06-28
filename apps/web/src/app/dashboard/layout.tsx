@@ -10,12 +10,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-screen flex-col md:flex-row">
       <aside className="sticky top-0 z-50 flex h-auto w-full shrink-0 flex-col border-b border-border bg-surface-deep/50 backdrop-blur-sm md:h-screen md:w-64 md:border-b-0 md:border-r">
         <div className="flex items-center gap-3 p-6">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-orange-700 text-sm font-semibold tracking-tighter text-white shadow-lg shadow-orange-900/20">
-            SII
-          </div>
+          <span
+            aria-hidden="true"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-accent/35 bg-gradient-to-br from-accent/25 to-primary/15 text-xs font-bold text-accent"
+          >
+            Q
+          </span>
           <div className="flex flex-col leading-tight">
             <span className="text-lg font-medium tracking-tight text-text">E-Boleta</span>
-            <span className="text-[10px] font-medium uppercase tracking-wide text-faint">by QAR</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-accent">by QAR</span>
           </div>
         </div>
 

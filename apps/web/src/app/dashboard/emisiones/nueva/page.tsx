@@ -192,11 +192,29 @@ export default async function NuevaEmisionPage({
   );
 
   return (
-    <div className="fade-in mx-auto max-w-5xl p-4 md:p-8">
+    <div className="fade-in mx-auto max-w-2xl p-4 md:p-8">
       <a href="/dashboard/emisiones" className="inline-block rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
         ← Volver a Emisiones
       </a>
-      <h1 className="mb-6 mt-2 border-b border-border pb-5 text-page">Nueva emisión por CSV</h1>
+
+      <div className="mb-6 mt-2 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-5">
+        <h1 className="text-page">Nueva emisión por CSV</h1>
+        <div className="flex gap-2">
+          <a
+            href="/dashboard/credenciales"
+            className="rounded-md border border-border bg-white/5 px-3 py-1.5 text-sm font-medium text-text transition-colors hover:bg-white/10"
+          >
+            Gestionar credenciales
+          </a>
+          <a
+            href="/ejemplo-boletas.csv"
+            download
+            className="rounded-md border border-border bg-white/5 px-3 py-1.5 text-sm font-medium text-text transition-colors hover:bg-white/10"
+          >
+            Descargar CSV de ejemplo
+          </a>
+        </div>
+      </div>
 
       {error === "faltan_datos" && (
         <p className="mb-4 text-sm text-danger">Selecciona una credencial y un archivo CSV</p>
@@ -205,77 +223,67 @@ export default async function NuevaEmisionPage({
         <p className="mb-4 text-sm text-danger">CSV inválido: {error}</p>
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/70 to-black p-6 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]">
-          <h2 className="mb-4 text-section">Datos del archivo</h2>
-          {credenciales.length === 0 ? (
-            <p className="text-sm text-muted">
-              Primero agrega una{" "}
-              <a href="/dashboard/credenciales" className="font-medium text-accent transition-colors hover:text-accent-hover">
-                credencial SII
-              </a>
-              .
-            </p>
-          ) : (
-            <form action={subirCsv} className="flex flex-col gap-4">
-              <select
-                name="siiCredentialId"
-                required
-                className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-accent/40 focus:ring-2 focus:ring-accent/20"
-              >
-                {credenciales.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.emisor} ({c.rut})
-                  </option>
-                ))}
-              </select>
-              <input
-                name="csv"
-                type="file"
-                accept=".csv"
-                required
-                className="text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text hover:file:bg-border"
-              />
-              <button
-                type="submit"
-                className="rounded-md bg-primary px-3 py-2 font-medium transition-colors hover:bg-primary-hover"
-              >
-                Subir y encolar
-              </button>
-            </form>
-          )}
-          <div className="mt-5 flex gap-4 border-t border-border pt-4 text-sm">
+      <section className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/70 to-black p-6 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]">
+        <h2 className="mb-4 text-section">Datos del archivo</h2>
+        {credenciales.length === 0 ? (
+          <p className="text-sm text-muted">
+            Primero agrega una{" "}
             <a href="/dashboard/credenciales" className="font-medium text-accent transition-colors hover:text-accent-hover">
-              Gestionar credenciales
+              credencial SII
             </a>
-            <a href="/ejemplo-boletas.csv" download className="font-medium text-accent transition-colors hover:text-accent-hover">
-              Descargar CSV de ejemplo
-            </a>
-          </div>
-        </section>
+            .
+          </p>
+        ) : (
+          <form action={subirCsv} className="flex flex-col gap-4">
+            <select
+              name="siiCredentialId"
+              required
+              className="truncate rounded-md border border-border bg-sunken px-3 py-2 text-sm transition-colors hover:border-border-strong focus:border-accent/40 focus:ring-2 focus:ring-accent/20"
+            >
+              {credenciales.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.emisor} ({c.rut})
+                </option>
+              ))}
+            </select>
+            <input
+              name="csv"
+              type="file"
+              accept=".csv"
+              required
+              className="text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text hover:file:bg-border"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-primary px-3 py-2 font-medium transition-colors hover:bg-primary-hover"
+            >
+              Subir y encolar
+            </button>
+          </form>
+        )}
+      </section>
 
-        <aside className="rounded-2xl border border-white/10 bg-black/20 p-6 backdrop-blur-xl">
-          <h2 className="mb-4 text-section">Tu CSV debe cumplir</h2>
-          <ul className="flex flex-col gap-3.5 text-sm text-muted">
-            {[
-              "RutContribuyente debe coincidir con el emisor seleccionado",
-              "Receptor y ConDetalle van con SI/NO",
-              "Si Receptor=SI: RutReceptor, NombreReceptor, DireccionReceptor, EmailReceptor y TelefonoReceptor son obligatorios",
-              "Si ConDetalle=SI: Detalle es obligatorio",
-              "Máximo 200 filas por archivo",
-            ].map((texto) => (
-              <li key={texto} className="flex items-start gap-2.5">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                  <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3 text-success" aria-hidden="true">
-                    <path d="M4 10.5 8 14.5 16 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <span>{texto}</span>
-              </li>
-            ))}
-          </ul>
-        </aside>
-      </div>
+      <aside className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-6 backdrop-blur-xl">
+        <h2 className="mb-4 text-section">Tu CSV debe cumplir</h2>
+        <ul className="flex flex-col gap-3.5 text-sm text-muted">
+          {[
+            "RutContribuyente debe coincidir con el emisor seleccionado",
+            "Receptor y ConDetalle van con SI/NO",
+            "Si Receptor=SI: RutReceptor, NombreReceptor, DireccionReceptor, EmailReceptor y TelefonoReceptor son obligatorios",
+            "Si ConDetalle=SI: Detalle es obligatorio",
+            "Máximo 200 filas por archivo",
+          ].map((texto) => (
+            <li key={texto} className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3 text-success" aria-hidden="true">
+                  <path d="M4 10.5 8 14.5 16 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span>{texto}</span>
+            </li>
+          ))}
+        </ul>
+      </aside>
     </div>
   );
 }
