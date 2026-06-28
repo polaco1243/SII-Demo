@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { parse } from "csv-parse/sync";
@@ -249,6 +250,13 @@ export default async function DashboardPage({
   const tasaExito = totalBoletas > 0 ? Math.round((boletasEmitidas / totalBoletas) * 100) : 0;
   const saludo = email ? email.split("@")[0] : "de nuevo";
 
+  // Proporciones reales para el mini gráfico de barras (success / failed / pending).
+  // La altura de cada barra se normaliza contra el máximo, con un piso para que
+  // una categoría no nula nunca quede invisible.
+  const maxBoletas = Math.max(boletasEmitidas, boletasConError, boletasPendientes, 1);
+  const alturaBarra = (valor: number): CSSProperties =>
+    ({ "--bar-h": valor === 0 ? "4px" : `${Math.max(12, Math.round((valor / maxBoletas) * 40))}px` }) as CSSProperties;
+
   return (
     <div className="fade-in mx-auto max-w-7xl p-4 md:p-8">
       <AutoRefresh activo={hayTrabajoEnProceso} />
@@ -294,7 +302,7 @@ export default async function DashboardPage({
 
       {/* KPI cards grandes */}
       <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="glass-panel rounded-lg p-5">
+        <div className="glass-panel gradient-border bento-card rounded-lg p-5 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]">
           <div className="mb-4 flex items-start justify-between">
             <p className="text-xs font-medium text-faint">Monto emitido</p>
             {tasaExito > 0 && (
@@ -306,8 +314,19 @@ export default async function DashboardPage({
           <div className="text-2xl font-medium tracking-tight text-text">
             ${montoEmitido.toLocaleString("es-CL")}
           </div>
+          {totalBoletas > 0 && (
+            <div
+              className="bar-chart mt-4"
+              role="img"
+              aria-label={`Distribución de boletas: ${boletasEmitidas} emitidas, ${boletasConError} con error, ${boletasPendientes} pendientes`}
+            >
+              <span className="bar-chart__bar bg-success/70" style={alturaBarra(boletasEmitidas)} />
+              <span className="bar-chart__bar bg-danger/70" style={alturaBarra(boletasConError)} />
+              <span className="bar-chart__bar bg-accent/70" style={alturaBarra(boletasPendientes)} />
+            </div>
+          )}
         </div>
-        <div className="glass-panel rounded-lg p-5">
+        <div className="glass-panel gradient-border bento-card rounded-lg p-5 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]">
           <div className="mb-4 flex items-start justify-between">
             <p className="text-xs font-medium text-faint">Boletas emitidas</p>
             <span className="inline-flex items-center rounded bg-success/10 px-1.5 py-0.5 text-xs text-success">
@@ -318,7 +337,7 @@ export default async function DashboardPage({
             {boletasEmitidas.toLocaleString("es-CL")}
           </div>
         </div>
-        <div className="glass-panel rounded-lg p-5">
+        <div className="glass-panel gradient-border bento-card rounded-lg p-5 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]">
           <div className="mb-4 flex items-start justify-between">
             <p className="text-xs font-medium text-faint">Con error</p>
             {boletasConError > 0 && (
@@ -331,7 +350,7 @@ export default async function DashboardPage({
             {boletasConError.toLocaleString("es-CL")}
           </div>
         </div>
-        <div className="glass-panel rounded-lg p-5">
+        <div className="glass-panel gradient-border bento-card rounded-lg p-5 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]">
           <div className="mb-4 flex items-start justify-between">
             <p className="text-xs font-medium text-faint">Pendientes / en proceso</p>
             {batchesEnProceso > 0 && (
@@ -369,7 +388,7 @@ export default async function DashboardPage({
             <select
               name="siiCredentialId"
               required
-              className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-border-strong"
+              className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-accent/40 focus:ring-2 focus:ring-accent/20"
             >
               {credenciales.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -391,6 +410,27 @@ export default async function DashboardPage({
               Subir y encolar
             </button>
           </form>
+        )}
+        {credenciales.length > 0 && (
+          <div className="mt-5 rounded-xl border border-white/10 bg-black/20 p-4 backdrop-blur-xl">
+            <p className="mb-3 text-xs font-medium text-faint">Tu CSV debe cumplir</p>
+            <ul className="flex flex-col gap-2.5 text-sm text-muted">
+              {[
+                "RutContribuyente debe coincidir con el emisor",
+                "Receptor y ConDetalle van con SI/NO",
+                "Máximo 200 filas",
+              ].map((texto) => (
+                <li key={texto} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                    <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3 text-success" aria-hidden="true">
+                      <path d="M4 10.5 8 14.5 16 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <span>{texto}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         <div className="mt-5 flex gap-4 border-t border-border pt-4 text-sm">
           <a href="/dashboard/credenciales" className="font-medium text-accent transition-colors hover:text-accent-hover">

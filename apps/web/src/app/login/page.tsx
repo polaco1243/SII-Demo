@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
+import { hash } from "bcryptjs";
+import { db, schema } from "@sii-demo/db";
 import { signIn } from "@/auth";
 import { AuthError } from "next-auth";
+import { AuthForm } from "@/components/AuthForm";
 
 async function login(formData: FormData) {
   "use server";
@@ -18,45 +21,59 @@ async function login(formData: FormData) {
   }
 }
 
+async function register(formData: FormData) {
+  "use server";
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+
+  if (!email || password.length < 8) {
+    redirect("/login?tab=signup&error=datos_invalidos");
+  }
+
+  const passwordHash = await hash(password, 12);
+
+  try {
+    await db.insert(schema.users).values({ email, passwordHash });
+  } catch {
+    redirect("/login?tab=signup&error=correo_en_uso");
+  }
+
+  redirect("/login");
+}
+
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; tab?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, tab } = await searchParams;
+
+  const registerError =
+    error === "correo_en_uso" || error === "datos_invalidos" ? error : null;
+  const loginError = error === "1";
+
+  // Si hay error de registro o ?tab=signup, abrir el tab "Crear cuenta".
+  const initialTab = registerError || tab === "signup" ? "signup" : "signin";
 
   return (
-    <main className="glass-panel fade-in mx-auto mt-24 max-w-sm rounded-card p-8 shadow-card">
-      <h1 className="mb-6 text-page">Iniciar sesión</h1>
-      {error && <p className="mb-4 text-sm text-danger">Correo o contraseña incorrectos</p>}
-      <form action={login} className="flex flex-col gap-4">
-        <input
-          name="email"
-          type="email"
-          placeholder="correo@ejemplo.com"
-          required
-          className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-border-strong"
+    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
+      {/* Glow ambiental decorativo, sutil, arriba-derecha */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed right-[10%] top-[12%] -z-10 h-[400px] w-[400px] rounded-full bg-accent/[0.04] blur-[120px]"
+      />
+
+      <div
+        className="auth-enter gradient-border-mask glass-panel w-full max-w-[440px] rounded-card p-8 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]"
+      >
+        <AuthForm
+          initialTab={initialTab}
+          loginAction={login}
+          registerAction={register}
+          loginError={loginError}
+          registerError={registerError}
         />
-        <input
-          name="password"
-          type="password"
-          placeholder="Contraseña"
-          required
-          className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-border-strong"
-        />
-        <button
-          type="submit"
-          className="rounded-md bg-primary px-3 py-2 font-medium transition-colors hover:bg-primary-hover"
-        >
-          Entrar
-        </button>
-      </form>
-      <p className="mt-4 text-sm text-muted">
-        ¿No tienes cuenta?{" "}
-        <a href="/register" className="font-medium text-accent transition-colors hover:text-accent-hover">
-          Regístrate
-        </a>
-      </p>
+      </div>
     </main>
   );
 }

@@ -41,6 +41,139 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(10px);
   }
+
+  /* Borde con gradiente sutil (patrón Masked): superpone un anillo de 1px
+     con un highlight blanco→naranja sobre superficies de fondo complejo. */
+  .gradient-border-mask {
+    position: relative;
+    border-radius: inherit;
+  }
+  .gradient-border-mask::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.3),
+      rgba(249, 115, 22, 0.35) 45%,
+      rgba(255, 255, 255, 0.06)
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Borde con gradiente reusable (clase utilitaria) — mismo patrón Masked.
+     Pensado para las 4 KPI cards grandes del dashboard (un solo nivel de jerarquía). */
+  .gradient-border {
+    position: relative;
+  }
+  .gradient-border::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.3),
+      rgba(249, 115, 22, 0.35) 45%,
+      rgba(255, 255, 255, 0.06)
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Bento card: lift en hover + top-edge glow line que aparece con opacity. */
+  .bento-card {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+  }
+  .bento-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      #fb923c,
+      #f97316,
+      #fb923c,
+      transparent
+    );
+    opacity: 0;
+    transition: opacity 0.4s ease, left 0.4s ease, right 0.4s ease;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .bento-card:hover {
+    transform: translateY(-3px);
+  }
+  .bento-card:hover::before {
+    opacity: 1;
+    left: 10%;
+    right: 10%;
+  }
+}
+
+/* Entrada del panel de auth: translateY(16px)→0 + opacity, ease-out expresivo. */
+.auth-enter {
+  animation: authEnter 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes authEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Shimmer decorativo del botón principal: barrido continuo, sutil. */
+.shimmer-layer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmerSweep 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmerSweep {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-enter,
+  .shimmer-layer {
+    animation: none;
+  }
 }
 
 .fade-in {
@@ -55,5 +188,46 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Mini gráfico de barras CSS-only — proporciones reales success/failed/pending.
+   La altura (proporción) viene inline vía --bar-h; el grow es una animación de
+   entrada única al cargar (scaleY desde la base), con delays escalonados. */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 40px;
+}
+.bar-chart__bar {
+  flex: 1;
+  border-radius: 3px 3px 0 0;
+  height: var(--bar-h, 4px);
+  min-height: 4px;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  animation: barGrow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.bar-chart__bar:nth-child(1) {
+  animation-delay: 0ms;
+}
+.bar-chart__bar:nth-child(2) {
+  animation-delay: 100ms;
+}
+.bar-chart__bar:nth-child(3) {
+  animation-delay: 200ms;
+}
+
+@keyframes barGrow {
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-chart__bar {
+    transform: scaleY(1);
+    animation: none;
   }
 }
