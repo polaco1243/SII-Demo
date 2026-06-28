@@ -8,3 +8,4 @@ descargas/
 logs/
 *.log
 .turbo/
+.gstack/

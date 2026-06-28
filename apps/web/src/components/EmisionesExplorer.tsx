@@ -52,25 +52,62 @@ const BOLETA_BADGE: Record<string, string> = {
   failed: "border-danger/40 bg-danger/15 text-danger",
 };
 
-function coincide(valor: string | null | undefined, filtro: string): boolean {
-  if (!filtro) return true;
-  return (valor ?? "").toLowerCase().includes(filtro.toLowerCase());
+const FILTROS_ESTADO: { valor: string; label: string }[] = [
+  { valor: "todos", label: "Todos" },
+  { valor: "borrador", label: "Por confirmar" },
+  { valor: "pending", label: "Pendientes" },
+  { valor: "running", label: "Procesando" },
+  { valor: "failed", label: "Con errores" },
+  { valor: "done", label: "Completados" },
+];
+
+function BarraProgreso({ boletas }: { boletas: Boleta[] }) {
+  const total = boletas.length;
+  if (total === 0) return null;
+  const exitosas = boletas.filter((b) => b.status === "success").length;
+  const fallidas = boletas.filter((b) => b.status === "failed").length;
+  const pendientes = total - exitosas - fallidas;
+
+  return (
+    <div
+      className="flex h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-white/5"
+      role="img"
+      aria-label={`${exitosas} emitidas, ${fallidas} con error, ${pendientes} pendientes de ${total} boletas`}
+    >
+      {exitosas > 0 && <span className="bg-success/70" style={{ width: `${(exitosas / total) * 100}%` }} />}
+      {fallidas > 0 && <span className="bg-danger/70" style={{ width: `${(fallidas / total) * 100}%` }} />}
+      {pendientes > 0 && <span className="bg-accent/70" style={{ width: `${(pendientes / total) * 100}%` }} />}
+    </div>
+  );
+}
+
+function coincideBusqueda(archivo: Archivo, busqueda: string): boolean {
+  if (!busqueda) return true;
+  const q = busqueda.toLowerCase();
+  return (
+    (archivo.emisorRut ?? "").toLowerCase().includes(q) ||
+    (archivo.emisorRazonSocial ?? "").toLowerCase().includes(q) ||
+    archivo.csvFilename.toLowerCase().includes(q)
+  );
 }
 
 export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
-  const [filtroRut, setFiltroRut] = useState("");
-  const [filtroRazonSocial, setFiltroRazonSocial] = useState("");
-  const [filtroArchivo, setFiltroArchivo] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
+
+  const conteosPorEstado = useMemo(() => {
+    const conteos: Record<string, number> = {};
+    for (const a of archivos) conteos[a.batchStatus] = (conteos[a.batchStatus] ?? 0) + 1;
+    return conteos;
+  }, [archivos]);
 
   const archivosFiltrados = useMemo(
     () =>
       archivos.filter(
         (a) =>
-          coincide(a.emisorRut, filtroRut) &&
-          coincide(a.emisorRazonSocial, filtroRazonSocial) &&
-          coincide(a.csvFilename, filtroArchivo),
+          coincideBusqueda(a, busqueda) && (filtroEstado === "todos" || a.batchStatus === filtroEstado),
       ),
-    [archivos, filtroRut, filtroRazonSocial, filtroArchivo],
+    [archivos, busqueda, filtroEstado],
   );
 
   const grupos = useMemo(() => {
@@ -86,24 +123,32 @@ export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
 
   return (
     <div>
-      <div className="mb-4 grid grid-cols-3 gap-2">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-1.5">
+          {FILTROS_ESTADO.map((f) => {
+            const cantidad = f.valor === "todos" ? archivos.length : conteosPorEstado[f.valor] ?? 0;
+            if (f.valor !== "todos" && cantidad === 0) return null;
+            return (
+              <button
+                key={f.valor}
+                type="button"
+                onClick={() => setFiltroEstado(f.valor)}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  filtroEstado === f.valor
+                    ? "border-accent/40 bg-accent/10 text-accent"
+                    : "border-border bg-white/[0.02] text-muted hover:text-text"
+                }`}
+              >
+                {f.label} <span className="opacity-60">{cantidad}</span>
+              </button>
+            );
+          })}
+        </div>
         <input
-          placeholder="Filtrar por RUT emisor"
-          value={filtroRut}
-          onChange={(e) => setFiltroRut(e.target.value)}
-          className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm transition-colors hover:border-border-strong focus:border-border-strong"
-        />
-        <input
-          placeholder="Filtrar por razón social"
-          value={filtroRazonSocial}
-          onChange={(e) => setFiltroRazonSocial(e.target.value)}
-          className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm transition-colors hover:border-border-strong focus:border-border-strong"
-        />
-        <input
-          placeholder="Filtrar por archivo"
-          value={filtroArchivo}
-          onChange={(e) => setFiltroArchivo(e.target.value)}
-          className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm transition-colors hover:border-border-strong focus:border-border-strong"
+          placeholder="Buscar por RUT, razón social o archivo…"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="w-full rounded-md border border-border bg-surface px-3 py-1.5 text-sm transition-colors hover:border-border-strong focus:border-border-strong sm:w-64"
         />
       </div>
 
@@ -114,7 +159,10 @@ export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
       ) : (
         <ul className="flex flex-col gap-3">
           {grupos.map((grupo) => (
-            <li key={`${grupo.rut}|${grupo.razonSocial}`} className="glass-panel overflow-hidden rounded-card shadow-card">
+            <li
+              key={`${grupo.rut}|${grupo.razonSocial}`}
+              className="glass-panel gradient-border bento-card overflow-hidden rounded-xl shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]"
+            >
               <details open className="group">
                 <summary className="flex cursor-pointer list-none items-center gap-3 p-4 transition-colors hover:bg-surface-2">
                   <span className="text-accent transition-transform duration-200 group-open:rotate-90">▶</span>
@@ -131,7 +179,7 @@ export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
                     {grupo.archivos.map((archivo) => (
                       <li key={archivo.batchId} className="overflow-hidden rounded-md border border-border bg-sunken">
                         <details className="group/file">
-                          <summary className="flex cursor-pointer list-none items-center justify-between p-3 transition-colors hover:bg-surface-2/50">
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-3 transition-colors hover:bg-surface-2/50">
                             <span className="flex min-w-0 items-center gap-3">
                               <span className="text-accent transition-transform duration-200 group-open/file:rotate-90">
                                 ▶
@@ -142,6 +190,7 @@ export function EmisionesExplorer({ archivos }: { archivos: Archivo[] }) {
                               </span>
                             </span>
                             <span className="flex shrink-0 items-center gap-3">
+                              <BarraProgreso boletas={archivo.boletas} />
                               <span
                                 className={`rounded-full border px-2.5 py-0.5 text-caption font-medium ${BATCH_BADGE[archivo.batchStatus]}`}
                               >
