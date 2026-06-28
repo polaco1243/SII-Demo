@@ -26,7 +26,7 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
       <p className="text-muted">Ocurrió un error inesperado.</p>
       <button
         onClick={() => window.location.reload()}
-        className="rounded-md bg-primary px-4 py-2 font-medium transition-colors hover:bg-primary-hover"
+        className="btn-primary rounded-md px-4 py-2"
       >
         Recargar página
       </button>

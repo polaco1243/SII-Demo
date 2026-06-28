@@ -1,5 +1,6 @@
 import { auth, signOut } from "@/auth";
 import { DashboardNav } from "@/components/DashboardNav";
+import { BrandMark } from "@/components/BrandMark";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -16,9 +17,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           >
             Q
           </span>
-          <div className="flex flex-col leading-tight">
+          <div className="flex flex-col items-start gap-1.5 leading-tight">
             <span className="text-lg font-medium tracking-tight text-text">E-Boleta</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-accent">by QAR</span>
+            <span className="brand-pill px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted">
+              <span className="brand-pill__dot" aria-hidden="true" />
+              by QAR
+            </span>
           </div>
         </div>
 
@@ -59,7 +63,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </aside>
 
-      <main className="h-screen flex-1 overflow-y-auto scroll-smooth">{children}</main>
+      <main className="flex h-screen flex-1 flex-col overflow-y-auto scroll-smooth">
+        <div className="flex-1">{children}</div>
+        <footer className="border-t border-border px-4 py-4 md:px-8">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
+            <BrandMark size="sm" />
+            <p className="text-[11px] text-faint">© 2026 QAR Studio · Desarrollo web &amp; soluciones digitales</p>
+          </div>
+        </footer>
+      </main>
     </div>
   );
 }

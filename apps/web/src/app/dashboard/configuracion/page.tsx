@@ -54,7 +54,7 @@ export default async function ConfiguracionPage({
           <p className="text-sm text-muted">Correo de la cuenta: {usuario?.email}</p>
           <button
             type="submit"
-            className="self-start rounded-md bg-primary px-4 py-2 text-sm font-medium transition-colors hover:bg-primary-hover"
+            className="btn-primary self-start rounded-md px-4 py-2 text-sm"
           >
             Guardar
           </button>

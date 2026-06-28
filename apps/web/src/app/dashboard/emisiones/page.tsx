@@ -81,7 +81,7 @@ export default async function EmisionesPage() {
         <h1 className="text-page">Emisiones</h1>
         <a
           href="/dashboard/emisiones/nueva"
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium transition-colors hover:bg-primary-hover"
+          className="btn-primary rounded-md px-4 py-2 text-sm"
         >
           + Nueva emisión
         </a>

@@ -127,6 +127,58 @@
     left: 10%;
     right: 10%;
   }
+
+  /* Botón primario de marca: gradiente naranja + sombra + lift en hover. */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: theme("colors.bg");
+    background: linear-gradient(135deg, theme("colors.primary"), theme("colors.accent-hover"));
+    box-shadow: 0 8px 28px -8px rgba(234, 88, 12, 0.55);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 32px -6px rgba(234, 88, 12, 0.6);
+  }
+
+  /* Pill de marca: punto pulsante + texto, usado para "by QAR". */
+  .brand-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+  }
+  .brand-pill__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: theme("colors.accent");
+    box-shadow: 0 0 10px theme("colors.accent");
+    animation: brandPulse 2s infinite;
+  }
+}
+
+@keyframes brandPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-pill__dot {
+    animation: none;
+  }
 }
 
 /* Entrada del panel de auth: translateY(16px)→0 + opacity, ease-out expresivo. */

@@ -226,7 +226,7 @@ export default async function CredencialesPage({
               />
               <button
                 type="submit"
-                className="rounded-md bg-primary px-3 py-2 font-medium transition-colors hover:bg-primary-hover"
+                className="btn-primary rounded-md px-3 py-2"
               >
                 Verificar credencial
               </button>
@@ -335,7 +335,7 @@ export default async function CredencialesPage({
                           />
                           <button
                             type="submit"
-                            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium transition-colors hover:bg-primary-hover"
+                            className="btn-primary rounded-md px-3 py-1.5 text-sm"
                           >
                             Guardar
                           </button>
@@ -382,7 +382,7 @@ export default async function CredencialesPage({
                           </div>
                           <button
                             type="submit"
-                            className="mt-3 rounded-md bg-primary px-3 py-2 text-sm font-medium transition-colors hover:bg-primary-hover"
+                            className="btn-primary mt-3 rounded-md px-3 py-2 text-sm"
                           >
                             Confirmar selección
                           </button>

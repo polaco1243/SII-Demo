@@ -130,7 +130,7 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
             </form>
             <form action={confirmarBatch}>
               <input type="hidden" name="batchId" value={batch.id} />
-              <button type="submit" className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium transition-colors hover:bg-primary-hover">
+              <button type="submit" className="btn-primary rounded-md px-3 py-1.5 text-sm">
                 Emitir boletas
               </button>
             </form>

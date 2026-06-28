@@ -202,14 +202,14 @@ export default async function NuevaEmisionPage({
         <div className="flex gap-2">
           <a
             href="/dashboard/credenciales"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium transition-colors hover:bg-primary-hover"
+            className="btn-primary rounded-md px-4 py-2 text-sm"
           >
             Gestionar credenciales
           </a>
           <a
             href="/ejemplo-boletas.csv"
             download
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium transition-colors hover:bg-primary-hover"
+            className="btn-primary rounded-md px-4 py-2 text-sm"
           >
             Descargar CSV de ejemplo
           </a>
@@ -255,7 +255,7 @@ export default async function NuevaEmisionPage({
             />
             <button
               type="submit"
-              className="rounded-md bg-primary px-3 py-2 font-medium transition-colors hover:bg-primary-hover"
+              className="btn-primary rounded-md px-3 py-2"
             >
               Subir y encolar
             </button>
