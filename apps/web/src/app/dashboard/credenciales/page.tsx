@@ -189,6 +189,75 @@ export default async function CredencialesPage({
         </p>
       )}
 
+      <details open={grupos.size === 0} className="group mb-10">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/70 to-black p-6 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]">
+          <span className="flex items-center gap-3">
+            <span className="text-accent transition-transform duration-200 group-open:rotate-90">▶</span>
+            <h2 className="text-section">Agregar credencial SII</h2>
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-caption font-medium text-success shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)]">
+            <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3" aria-hidden="true">
+              <path
+                d="M10 2.5 4 5v4.5c0 3.5 2.4 6.4 6 7.5 3.6-1.1 6-4 6-7.5V5l-6-2.5Z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Cifrado AES-256
+          </span>
+        </summary>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <section className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/70 to-black p-6 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]">
+            <form action={agregarCredencial} className="flex flex-col gap-4">
+              <input
+                name="rut"
+                placeholder="RUT (ej. 12345678-9)"
+                required
+                className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-accent/40 focus:ring-2 focus:ring-accent/20"
+              />
+              <input
+                name="clave"
+                type="password"
+                placeholder="Clave SII"
+                required
+                className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-accent/40 focus:ring-2 focus:ring-accent/20"
+              />
+              <button
+                type="submit"
+                className="rounded-md bg-primary px-3 py-2 font-medium transition-colors hover:bg-primary-hover"
+              >
+                Verificar credencial
+              </button>
+            </form>
+            <p className="mt-4 text-sm text-muted">
+              La clave se cifra antes de guardarse. Tras verificarla, vas a elegir con qué emisor(es) emitir.
+            </p>
+          </section>
+
+          <aside className="rounded-2xl border border-white/10 bg-black/20 p-6 backdrop-blur-xl">
+            <h2 className="mb-4 text-section">Qué pasa después</h2>
+            <ul className="flex flex-col gap-3.5 text-sm text-muted">
+              {[
+                "Verificamos tu RUT y clave contra el SII",
+                "Detectamos automáticamente tus razones sociales",
+                "Eliges cuáles activar",
+              ].map((texto) => (
+                <li key={texto} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                    <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3 text-success" aria-hidden="true">
+                      <path d="M4 10.5 8 14.5 16 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <span>{texto}</span>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        </div>
+      </details>
+
       {grupos.size > 0 && (
         <div className="mb-10">
           <h2 className="mb-3 text-section">Tus credenciales</h2>
@@ -207,7 +276,10 @@ export default async function CredencialesPage({
               const necesitaAtencion = porConfirmar.length > 0 || conError.length > 0;
 
               return (
-                <li key={rut} className="glass-panel overflow-hidden rounded-card shadow-card">
+                <li
+                  key={rut}
+                  className="glass-panel gradient-border bento-card overflow-hidden rounded-xl shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]"
+                >
                   <details open={editandoEsteRut || necesitaAtencion} className="group">
                     <summary className="flex cursor-pointer list-none items-center justify-between p-4 transition-colors hover:bg-surface-2">
                       <span className="flex items-center gap-3">
@@ -362,69 +434,6 @@ export default async function CredencialesPage({
           </ul>
         </div>
       )}
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/70 to-black p-6 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-section">Agregar credencial SII</h2>
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-caption font-medium text-success shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)]">
-              <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3" aria-hidden="true">
-                <path
-                  d="M10 2.5 4 5v4.5c0 3.5 2.4 6.4 6 7.5 3.6-1.1 6-4 6-7.5V5l-6-2.5Z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Cifrado AES-256
-            </span>
-          </div>
-          <form action={agregarCredencial} className="flex flex-col gap-4">
-            <input
-              name="rut"
-              placeholder="RUT (ej. 12345678-9)"
-              required
-              className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-accent/40 focus:ring-2 focus:ring-accent/20"
-            />
-            <input
-              name="clave"
-              type="password"
-              placeholder="Clave SII"
-              required
-              className="rounded-md border border-border bg-sunken px-3 py-2 transition-colors hover:border-border-strong focus:border-accent/40 focus:ring-2 focus:ring-accent/20"
-            />
-            <button
-              type="submit"
-              className="rounded-md bg-primary px-3 py-2 font-medium transition-colors hover:bg-primary-hover"
-            >
-              Verificar credencial
-            </button>
-          </form>
-          <p className="mt-4 text-sm text-muted">
-            La clave se cifra antes de guardarse. Tras verificarla, vas a elegir con qué emisor(es) emitir.
-          </p>
-        </section>
-
-        <aside className="rounded-2xl border border-white/10 bg-black/20 p-6 backdrop-blur-xl">
-          <h2 className="mb-4 text-section">Qué pasa después</h2>
-          <ul className="flex flex-col gap-3.5 text-sm text-muted">
-            {[
-              "Verificamos tu RUT y clave contra el SII",
-              "Detectamos automáticamente tus razones sociales",
-              "Eliges cuáles activar",
-            ].map((texto) => (
-              <li key={texto} className="flex items-start gap-2.5">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                  <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3 text-success" aria-hidden="true">
-                    <path d="M4 10.5 8 14.5 16 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <span>{texto}</span>
-              </li>
-            ))}
-          </ul>
-        </aside>
-      </div>
     </div>
   );
 }
