@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { eq, and, desc, gte, lte } from "drizzle-orm";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
 import { TIPO_EVENTO_LABEL, TIPO_EVENTO_BADGE } from "@/lib/eventos";
 import { EmisionesSubNav } from "@/components/EmisionesSubNav";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { DateField } from "@/components/DateField";
 
 function fechaHora(d: Date): string {
   return d.toLocaleString("es-CL", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -103,33 +105,23 @@ export default async function BitacoraPage({
             </div>
             <div>
               <label className="mb-1 block text-xs text-muted">Desde</label>
-              <input
-                type="date"
-                name="desde"
-                defaultValue={desde}
-                className="w-full rounded-md border border-border bg-sunken px-2 py-1.5 text-sm transition-colors hover:border-border-strong focus:border-accent/40"
-              />
+              <DateField name="desde" defaultValue={desde} placeholder="Sin límite inferior" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-muted">Hasta</label>
-              <input
-                type="date"
-                name="hasta"
-                defaultValue={hasta}
-                className="w-full rounded-md border border-border bg-sunken px-2 py-1.5 text-sm transition-colors hover:border-border-strong focus:border-accent/40"
-              />
+              <DateField name="hasta" defaultValue={hasta} placeholder="Sin límite superior" />
             </div>
           </div>
           <div className="flex gap-2 border-t border-border pt-3">
             <button type="submit" className="btn-primary rounded-md px-4 py-2 text-sm">
               Filtrar
             </button>
-            <a
+            <Link
               href="/dashboard/emisiones/bitacora"
               className="flex items-center rounded-md border border-border bg-white/[0.04] px-4 py-2 text-sm text-muted transition-colors hover:text-text"
             >
               Limpiar filtros
-            </a>
+            </Link>
           </div>
         </form>
       </details>

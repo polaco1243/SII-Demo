@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { eq, desc, and, or, ilike, inArray } from "drizzle-orm";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
@@ -91,7 +92,7 @@ export default async function HistorialPage({
       <form className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-1.5">
           {VIGENCIAS.map((v) => (
-            <a
+            <Link
               key={v.valor}
               href={`/dashboard/emisiones/historial?${new URLSearchParams({ vigencia: v.valor, q }).toString()}`}
               className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
@@ -101,7 +102,7 @@ export default async function HistorialPage({
               }`}
             >
               {v.label}
-            </a>
+            </Link>
           ))}
         </div>
         <div className="flex gap-2">
