@@ -1,6 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  calcularEstadoArchivo,
+  ESTADO_ARCHIVO_LABEL,
+  ESTADO_ARCHIVO_BADGE,
+  ESTADO_BOLETA_LABEL,
+  ESTADO_BOLETA_BADGE,
+  type EstadoArchivo,
+} from "@/lib/estados";
 
 interface Boleta {
   id: string;
@@ -29,36 +37,17 @@ interface Archivo {
   boletas: Boleta[];
 }
 
-const BATCH_LABEL: Record<string, string> = {
-  borrador: "Por confirmar",
-  pending: "Pendiente",
-  running: "Procesando",
-  done: "Completado",
-  failed: "Con errores",
-};
+const BOLETA_LABEL = ESTADO_BOLETA_LABEL;
+const BOLETA_BADGE = ESTADO_BOLETA_BADGE;
 
-const BATCH_BADGE: Record<string, string> = {
-  borrador: "border-warning/40 bg-warning/15 text-warning",
-  pending: "border-border bg-surface-2 text-muted",
-  running: "border-accent/40 bg-info/15 text-accent",
-  done: "border-success/40 bg-success/15 text-success",
-  failed: "border-danger/40 bg-danger/15 text-danger",
-};
-
-const BOLETA_LABEL: Record<string, string> = { pending: "Pendiente", success: "Emitida", failed: "Falló" };
-const BOLETA_BADGE: Record<string, string> = {
-  pending: "border-border bg-surface-2 text-muted",
-  success: "border-success/40 bg-success/15 text-success",
-  failed: "border-danger/40 bg-danger/15 text-danger",
-};
-
-const FILTROS_ESTADO: { valor: string; label: string }[] = [
+const FILTROS_ESTADO: { valor: "todos" | EstadoArchivo; label: string }[] = [
   { valor: "todos", label: "Todos" },
   { valor: "borrador", label: "Por confirmar" },
   { valor: "pending", label: "Pendientes" },
   { valor: "running", label: "Procesando" },
-  { valor: "failed", label: "Con errores" },
-  { valor: "done", label: "Completados" },
+  { valor: "completo", label: "Completos" },
+  { valor: "incompleto", label: "Incompletos" },
+  { valor: "error", label: "Error" },
 ];
 
 function BarraProgreso({ boletas }: { boletas: Boleta[] }) {
@@ -181,7 +170,10 @@ export function EmisionesExplorer({
 
   const conteosPorEstado = useMemo(() => {
     const conteos: Record<string, number> = {};
-    for (const a of archivos) conteos[a.batchStatus] = (conteos[a.batchStatus] ?? 0) + 1;
+    for (const a of archivos) {
+      const estado = calcularEstadoArchivo(a.batchStatus, a.boletas);
+      conteos[estado] = (conteos[estado] ?? 0) + 1;
+    }
     return conteos;
   }, [archivos]);
 
@@ -189,7 +181,8 @@ export function EmisionesExplorer({
     () =>
       archivos.filter(
         (a) =>
-          coincideBusqueda(a, busqueda) && (filtroEstado === "todos" || a.batchStatus === filtroEstado),
+          coincideBusqueda(a, busqueda) &&
+          (filtroEstado === "todos" || calcularEstadoArchivo(a.batchStatus, a.boletas) === filtroEstado),
       ),
     [archivos, busqueda, filtroEstado],
   );
@@ -292,9 +285,9 @@ export function EmisionesExplorer({
                               <span className="flex shrink-0 items-center gap-3">
                                 <BarraProgreso boletas={archivo.boletas} />
                                 <span
-                                  className={`rounded-full border px-2.5 py-0.5 text-caption font-medium ${BATCH_BADGE[archivo.batchStatus]}`}
+                                  className={`rounded-full border px-2.5 py-0.5 text-caption font-medium ${ESTADO_ARCHIVO_BADGE[calcularEstadoArchivo(archivo.batchStatus, archivo.boletas)]}`}
                                 >
-                                  {BATCH_LABEL[archivo.batchStatus]}
+                                  {ESTADO_ARCHIVO_LABEL[calcularEstadoArchivo(archivo.batchStatus, archivo.boletas)]}
                                 </span>
                                 <a
                                   href={`/dashboard/batches/${archivo.batchId}`}

@@ -1,12 +1,8 @@
 import { eq, desc, and, or, ilike, inArray } from "drizzle-orm";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
-
-function csvEscape(valor: unknown): string {
-  const texto = String(valor ?? "");
-  if (/[",\n]/.test(texto)) return `"${texto.replace(/"/g, '""')}"`;
-  return texto;
-}
+import { calcularEstadoArchivo, ESTADO_ARCHIVO_LABEL, ESTADO_BOLETA_LABEL } from "@/lib/estados";
+import { generarCsv, nombreArchivoConFecha } from "@/lib/csv";
 
 export async function GET(request: Request) {
   const userId = await requireUserId();
@@ -55,22 +51,24 @@ export async function GET(request: Request) {
       boletasPorBatch.set(b.batchId, arr);
     }
 
-    return batches.flatMap((batch) =>
-      (boletasPorBatch.get(batch.batchId) ?? []).map((b) => ({
-        razonSocial: batch.emisorRazonSocial ?? "",
-        rutEmisor: batch.emisorRut ?? "",
-        vigente: batch.credencialActiva ? "Sí" : "No",
-        archivo: batch.csvFilename,
-        fechaArchivo: batch.createdAt.toISOString(),
-        estadoArchivo: batch.batchStatus,
-        cliente: b.nombre,
-        monto: b.monto,
-        tipoBoleta: b.tipoBoleta,
-        metodoPago: b.metodoPago,
-        estadoBoleta: b.status,
-        error: b.errorMessage ?? "",
-      })),
-    );
+    return batches.flatMap((batch) => {
+      const boletasBatch = boletasPorBatch.get(batch.batchId) ?? [];
+      const estadoArchivo = ESTADO_ARCHIVO_LABEL[calcularEstadoArchivo(batch.batchStatus, boletasBatch)];
+      return boletasBatch.map((b) => [
+        batch.emisorRazonSocial ?? "",
+        batch.emisorRut ?? "",
+        batch.credencialActiva ? "Si" : "No",
+        batch.csvFilename,
+        batch.createdAt.toISOString(),
+        estadoArchivo,
+        b.nombre,
+        b.monto,
+        b.tipoBoleta,
+        b.metodoPago,
+        ESTADO_BOLETA_LABEL[b.status] ?? b.status,
+        b.errorMessage ?? "",
+      ]);
+    });
   });
 
   const encabezado = [
@@ -88,15 +86,10 @@ export async function GET(request: Request) {
     "Error",
   ];
 
-  const lineas = [
-    encabezado.join(","),
-    ...filas.map((f) => Object.values(f).map(csvEscape).join(",")),
-  ];
-
-  return new Response(lineas.join("\n"), {
+  return new Response(generarCsv(encabezado, filas), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="historial-emisiones.csv"`,
+      "Content-Disposition": `attachment; filename="${nombreArchivoConFecha("emisiones")}"`,
     },
   });
 }

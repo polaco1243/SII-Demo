@@ -1,12 +1,8 @@
 import { eq, and, desc, gte, lte } from "drizzle-orm";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
-
-function csvEscape(valor: unknown): string {
-  const texto = String(valor ?? "");
-  if (/[",\n]/.test(texto)) return `"${texto.replace(/"/g, '""')}"`;
-  return texto;
-}
+import { TIPO_EVENTO_LABEL } from "@/lib/eventos";
+import { generarCsv, nombreArchivoConFecha } from "@/lib/csv";
 
 export async function GET(request: Request) {
   const userId = await requireUserId();
@@ -35,19 +31,19 @@ export async function GET(request: Request) {
   });
 
   const encabezado = ["Fecha y hora", "Usuario", "Tipo de evento", "Razón social", "RUT", "Descripción"];
-  const lineas = [
-    encabezado.join(","),
-    ...eventos.map((e) =>
-      [e.createdAt.toISOString(), e.actorEmail, e.tipo, e.razonSocialSnapshot ?? "", e.rutSnapshot ?? "", e.descripcion]
-        .map(csvEscape)
-        .join(","),
-    ),
-  ];
+  const filas = eventos.map((e) => [
+    e.createdAt.toISOString(),
+    e.actorEmail,
+    TIPO_EVENTO_LABEL[e.tipo] ?? e.tipo,
+    e.razonSocialSnapshot ?? "",
+    e.rutSnapshot ?? "",
+    e.descripcion,
+  ]);
 
-  return new Response(lineas.join("\n"), {
+  return new Response(generarCsv(encabezado, filas), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="bitacora-auditoria.csv"`,
+      "Content-Disposition": `attachment; filename="${nombreArchivoConFecha("historial")}"`,
     },
   });
 }

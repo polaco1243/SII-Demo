@@ -5,17 +5,14 @@ import { requireUserId } from "@/lib/session";
 import { auth } from "@/auth";
 import { registrarEvento } from "@/lib/auditoria";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { ESTADO_BOLETA_LABEL, ESTADO_BOLETA_BADGE } from "@/lib/estados";
 
 async function actorEmailActual(): Promise<string> {
   const session = await auth();
   return session?.user?.email ?? "";
 }
 
-const ESTADO_LABEL: Record<string, string> = {
-  pending: "Pendiente",
-  success: "Emitida",
-  failed: "Falló",
-};
+const ESTADO_LABEL = ESTADO_BOLETA_LABEL;
 
 const TIPO_BOLETA_LABEL: Record<string, string> = {
   exenta: "Boleta exenta",
@@ -29,11 +26,7 @@ const METODO_PAGO_LABEL: Record<string, string> = {
   otro: "Otro",
 };
 
-const ESTADO_BADGE: Record<string, string> = {
-  pending: "border-border bg-surface-2 text-muted",
-  success: "border-success/40 bg-success/15 text-success",
-  failed: "border-danger/40 bg-danger/15 text-danger",
-};
+const ESTADO_BADGE = ESTADO_BOLETA_BADGE;
 
 async function obtenerContextoBatch(tx: typeof db, userId: string, batchId: string) {
   const [fila] = await tx

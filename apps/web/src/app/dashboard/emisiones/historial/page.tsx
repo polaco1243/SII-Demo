@@ -3,6 +3,7 @@ import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
 import { HistorialExplorer } from "@/components/HistorialExplorer";
 import { EmisionesSubNav } from "@/components/EmisionesSubNav";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 
 type Vigencia = "todas" | "vigentes" | "inactivas";
 
@@ -84,17 +85,7 @@ export default async function HistorialPage({
           <h1 className="text-page">Historial completo</h1>
           <p className="text-sm text-muted">Todas las emisiones, incluidas las de razones sociales que ya no están vigentes.</p>
         </div>
-        <a
-          href={`/api/historial/export?${queryExport}`}
-          className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-medium text-[#d4d4d8] transition-colors hover:bg-white/[0.1] hover:text-white"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-            <path d="M12 3v12" />
-            <path d="m7 10 5 5 5-5" />
-            <path d="M5 21h14" />
-          </svg>
-          Exportar CSV
-        </a>
+        <ExportCsvButton href={`/api/historial/export?${queryExport}`} />
       </div>
 
       <form className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
