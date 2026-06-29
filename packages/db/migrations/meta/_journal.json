@@ -50,6 +50,13 @@
       "when": 1782630360564,
       "tag": "0006_unique_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782753292959,
+      "tag": "0007_modern_eternity",
+      "breakpoints": true
     }
   ]
 }

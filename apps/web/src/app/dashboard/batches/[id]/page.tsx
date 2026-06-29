@@ -1,8 +1,15 @@
 import { notFound, redirect } from "next/navigation";
 import { eq, and } from "drizzle-orm";
-import { withUser, schema } from "@sii-demo/db";
+import { db, withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
+import { auth } from "@/auth";
+import { registrarEvento } from "@/lib/auditoria";
 import { AutoRefresh } from "@/components/AutoRefresh";
+
+async function actorEmailActual(): Promise<string> {
+  const session = await auth();
+  return session?.user?.email ?? "";
+}
 
 const ESTADO_LABEL: Record<string, string> = {
   pending: "Pendiente",
@@ -28,19 +35,31 @@ const ESTADO_BADGE: Record<string, string> = {
   failed: "border-danger/40 bg-danger/15 text-danger",
 };
 
+async function obtenerContextoBatch(tx: typeof db, userId: string, batchId: string) {
+  const [fila] = await tx
+    .select({
+      csvFilename: schema.batches.csvFilename,
+      emisorRazonSocial: schema.siiCredentials.emisorRazonSocial,
+      emisorRut: schema.siiCredentials.emisorRut,
+    })
+    .from(schema.batches)
+    .innerJoin(schema.siiCredentials, eq(schema.batches.siiCredentialId, schema.siiCredentials.id))
+    .where(and(eq(schema.batches.id, batchId), eq(schema.batches.userId, userId)));
+  return fila;
+}
+
 async function reintentarBoleta(formData: FormData) {
   "use server";
   const userId = await requireUserId();
+  const actorEmail = await actorEmailActual();
   const boletaId = String(formData.get("boletaId") ?? "");
   const batchId = String(formData.get("batchId") ?? "");
 
   await withUser(userId, async (tx) => {
-    const [batch] = await tx
-      .select()
-      .from(schema.batches)
-      .where(and(eq(schema.batches.id, batchId), eq(schema.batches.userId, userId)));
+    const contexto = await obtenerContextoBatch(tx, userId, batchId);
+    if (!contexto) throw new Error("Batch no encontrado");
 
-    if (!batch) throw new Error("Batch no encontrado");
+    const [boleta] = await tx.select().from(schema.boletas).where(eq(schema.boletas.id, boletaId));
 
     await tx
       .update(schema.boletas)
@@ -51,6 +70,17 @@ async function reintentarBoleta(formData: FormData) {
       .update(schema.batches)
       .set({ status: "pending", errorMessage: null, finishedAt: null })
       .where(eq(schema.batches.id, batchId));
+
+    await registrarEvento(tx, {
+      userId,
+      actorEmail,
+      tipo: "boleta_reintentada",
+      entidadId: boletaId,
+      razonSocialSnapshot: contexto.emisorRazonSocial,
+      rutSnapshot: contexto.emisorRut,
+      descripcion: `Reintentó boleta de ${boleta?.nombre ?? "—"} en ${contexto.csvFilename}`,
+      detalle: { batchId, csvFilename: contexto.csvFilename },
+    });
   });
 
   redirect(`/dashboard/batches/${batchId}`);
@@ -59,13 +89,28 @@ async function reintentarBoleta(formData: FormData) {
 async function confirmarBatch(formData: FormData) {
   "use server";
   const userId = await requireUserId();
+  const actorEmail = await actorEmailActual();
   const batchId = String(formData.get("batchId") ?? "");
 
   await withUser(userId, async (tx) => {
+    const contexto = await obtenerContextoBatch(tx, userId, batchId);
+
     await tx
       .update(schema.batches)
       .set({ status: "pending" })
       .where(and(eq(schema.batches.id, batchId), eq(schema.batches.userId, userId), eq(schema.batches.status, "borrador")));
+
+    if (contexto) {
+      await registrarEvento(tx, {
+        userId,
+        actorEmail,
+        tipo: "batch_confirmado",
+        entidadId: batchId,
+        razonSocialSnapshot: contexto.emisorRazonSocial,
+        rutSnapshot: contexto.emisorRut,
+        descripcion: `Confirmó la emisión de "${contexto.csvFilename}" para ${contexto.emisorRazonSocial ?? contexto.emisorRut}`,
+      });
+    }
   });
 
   redirect(`/dashboard/batches/${batchId}`);
@@ -74,12 +119,27 @@ async function confirmarBatch(formData: FormData) {
 async function cancelarBatch(formData: FormData) {
   "use server";
   const userId = await requireUserId();
+  const actorEmail = await actorEmailActual();
   const batchId = String(formData.get("batchId") ?? "");
 
   await withUser(userId, async (tx) => {
+    const contexto = await obtenerContextoBatch(tx, userId, batchId);
+
     await tx
       .delete(schema.batches)
       .where(and(eq(schema.batches.id, batchId), eq(schema.batches.userId, userId), eq(schema.batches.status, "borrador")));
+
+    if (contexto) {
+      await registrarEvento(tx, {
+        userId,
+        actorEmail,
+        tipo: "batch_cancelado",
+        entidadId: batchId,
+        razonSocialSnapshot: contexto.emisorRazonSocial,
+        rutSnapshot: contexto.emisorRut,
+        descripcion: `Canceló el borrador "${contexto.csvFilename}" de ${contexto.emisorRazonSocial ?? contexto.emisorRut}`,
+      });
+    }
   });
 
   redirect("/dashboard/emisiones");

@@ -4,7 +4,7 @@ import { db, schema } from "@sii-demo/db";
 import { decrypt } from "@sii-demo/crypto";
 import { SIIAutomation } from "./automation";
 
-const { batches, boletas, siiCredentials } = schema;
+const { batches, boletas, siiCredentials, auditEvents } = schema;
 
 const POLL_INTERVAL_MS = 15_000;
 const DESCARGAS_DIR = process.env.DESCARGAS_DIR ?? "/data/descargas";
@@ -93,6 +93,22 @@ async function processBatch(batch: typeof schema.batches.$inferSelect) {
     .update(batches)
     .set({ status: huboFallo ? "failed" : "done", finishedAt: new Date() })
     .where(eq(batches.id, batch.id));
+
+  const exitosas = resultados.filter((r) => r.exito).length;
+  const fallidas = resultados.length - exitosas;
+
+  // Evento generado por el sistema (no por una acción humana) — se registra
+  // con actorEmail "sistema" para no atribuirle a un usuario algo que no hizo.
+  await db.insert(auditEvents).values({
+    userId: batch.userId,
+    actorEmail: "sistema",
+    tipo: "archivo_procesado",
+    entidadId: batch.id,
+    razonSocialSnapshot: credencial.emisorRazonSocial,
+    rutSnapshot: credencial.emisorRut,
+    descripcion: `Procesó "${batch.csvFilename}": ${exitosas} exitosa${exitosas === 1 ? "" : "s"}, ${fallidas} fallida${fallidas === 1 ? "" : "s"}`,
+    detalle: { csvFilename: batch.csvFilename, exitosas, fallidas },
+  });
 }
 
 async function claimNextCredentialDiscovery() {

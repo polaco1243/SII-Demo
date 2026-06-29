@@ -5,11 +5,18 @@ import { withUser, schema } from "@sii-demo/db";
 import { encrypt } from "@sii-demo/crypto";
 import { requireUserId } from "@/lib/session";
 import { validarRut } from "@/lib/rut";
+import { auth } from "@/auth";
+import { registrarEvento } from "@/lib/auditoria";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { Spinner } from "@/components/Spinner";
 import { DropdownMenu } from "@/components/DropdownMenu";
 import { DismissibleBanner } from "@/components/DismissibleBanner";
 import { Tooltip } from "@/components/Tooltip";
+
+async function actorEmailActual(): Promise<string> {
+  const session = await auth();
+  return session?.user?.email ?? "";
+}
 
 const RUT_EMISOR_RE = /^([\d.]+-[\dkK])\s+(.*)$/;
 
@@ -34,9 +41,22 @@ async function agregarCredencial(formData: FormData) {
   }
 
   const claveEncrypted = encrypt(clave);
+  const actorEmail = await actorEmailActual();
 
   await withUser(userId, async (tx) => {
-    await tx.insert(schema.siiCredentials).values({ userId, rut, claveEncrypted, status: "pendiente" });
+    const [creada] = await tx
+      .insert(schema.siiCredentials)
+      .values({ userId, rut, claveEncrypted, status: "pendiente" })
+      .returning();
+
+    await registrarEvento(tx, {
+      userId,
+      actorEmail,
+      tipo: "credencial_agregada",
+      entidadId: creada.id,
+      rutSnapshot: rut,
+      descripcion: `Agregó credencial SII para el RUT ${rut}`,
+    });
   });
 
   redirect("/dashboard/credenciales");
@@ -45,6 +65,7 @@ async function agregarCredencial(formData: FormData) {
 async function confirmarEmisores(formData: FormData) {
   "use server";
   const userId = await requireUserId();
+  const actorEmail = await actorEmailActual();
   const credencialId = String(formData.get("credencialId") ?? "");
   const seleccionados = formData.getAll("emisor").map(String);
 
@@ -62,14 +83,27 @@ async function confirmarEmisores(formData: FormData) {
 
     for (const textoExacto of seleccionados) {
       const { rut: emisorRut, razonSocial } = parseEmisor(textoExacto);
-      await tx.insert(schema.siiCredentials).values({
+      const [nueva] = await tx
+        .insert(schema.siiCredentials)
+        .values({
+          userId,
+          rut: credencial.rut,
+          claveEncrypted: credencial.claveEncrypted,
+          emisor: textoExacto,
+          emisorRut,
+          emisorRazonSocial: razonSocial,
+          status: "lista",
+        })
+        .returning();
+
+      await registrarEvento(tx, {
         userId,
-        rut: credencial.rut,
-        claveEncrypted: credencial.claveEncrypted,
-        emisor: textoExacto,
-        emisorRut,
-        emisorRazonSocial: razonSocial,
-        status: "lista",
+        actorEmail,
+        tipo: "credencial_confirmada",
+        entidadId: nueva.id,
+        razonSocialSnapshot: razonSocial,
+        rutSnapshot: emisorRut,
+        descripcion: `Confirmó razón social "${razonSocial}" (RUT emisor ${emisorRut})`,
       });
     }
 
@@ -105,12 +139,21 @@ async function actualizarClave(formData: FormData) {
   }
 
   const claveEncrypted = encrypt(nuevaClave);
+  const actorEmail = await actorEmailActual();
 
   await withUser(userId, async (tx) => {
     await tx
       .update(schema.siiCredentials)
       .set({ claveEncrypted, updatedAt: new Date() })
       .where(and(eq(schema.siiCredentials.userId, userId), eq(schema.siiCredentials.rut, rut)));
+
+    await registrarEvento(tx, {
+      userId,
+      actorEmail,
+      tipo: "credencial_clave_actualizada",
+      rutSnapshot: rut,
+      descripcion: `Actualizó la clave SII del RUT ${rut}`,
+    });
   });
 
   redirect("/dashboard/credenciales?ok=clave_actualizada");
@@ -119,13 +162,31 @@ async function actualizarClave(formData: FormData) {
 async function eliminarCredencial(formData: FormData) {
   "use server";
   const userId = await requireUserId();
+  const actorEmail = await actorEmailActual();
   const credencialId = String(formData.get("credencialId") ?? "");
 
   await withUser(userId, async (tx) => {
+    const [credencial] = await tx
+      .select()
+      .from(schema.siiCredentials)
+      .where(and(eq(schema.siiCredentials.id, credencialId), eq(schema.siiCredentials.userId, userId)));
+
     await tx
       .update(schema.siiCredentials)
       .set({ activa: false, updatedAt: new Date() })
       .where(and(eq(schema.siiCredentials.id, credencialId), eq(schema.siiCredentials.userId, userId)));
+
+    if (credencial) {
+      await registrarEvento(tx, {
+        userId,
+        actorEmail,
+        tipo: "credencial_eliminada",
+        entidadId: credencialId,
+        razonSocialSnapshot: credencial.emisorRazonSocial,
+        rutSnapshot: credencial.emisorRut ?? credencial.rut,
+        descripcion: `Eliminó la razón social "${credencial.emisorRazonSocial ?? credencial.rut}"`,
+      });
+    }
   });
 
   redirect("/dashboard/credenciales");
@@ -134,13 +195,31 @@ async function eliminarCredencial(formData: FormData) {
 async function eliminarPorRut(formData: FormData) {
   "use server";
   const userId = await requireUserId();
+  const actorEmail = await actorEmailActual();
   const rut = String(formData.get("rut") ?? "");
 
   await withUser(userId, async (tx) => {
+    const afectadas = await tx
+      .select()
+      .from(schema.siiCredentials)
+      .where(and(eq(schema.siiCredentials.userId, userId), eq(schema.siiCredentials.rut, rut)));
+
     await tx
       .update(schema.siiCredentials)
       .set({ activa: false, updatedAt: new Date() })
       .where(and(eq(schema.siiCredentials.userId, userId), eq(schema.siiCredentials.rut, rut)));
+
+    for (const credencial of afectadas) {
+      await registrarEvento(tx, {
+        userId,
+        actorEmail,
+        tipo: "credencial_eliminada",
+        entidadId: credencial.id,
+        razonSocialSnapshot: credencial.emisorRazonSocial,
+        rutSnapshot: credencial.emisorRut ?? credencial.rut,
+        descripcion: `Eliminó la razón social "${credencial.emisorRazonSocial ?? credencial.rut}" (de baja todo el RUT ${rut})`,
+      });
+    }
   });
 
   redirect("/dashboard/credenciales");

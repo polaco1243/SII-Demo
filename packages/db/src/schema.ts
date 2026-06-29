@@ -12,6 +12,17 @@ export const credentialStatus = pgEnum("credential_status", [
 ]);
 export const tipoBoletaEnum = pgEnum("tipo_boleta", ["exenta", "afecta"]);
 export const metodoPagoEnum = pgEnum("metodo_pago", ["debito", "credito", "efectivo", "otro"]);
+export const auditEventType = pgEnum("audit_event_type", [
+  "credencial_agregada",
+  "credencial_confirmada",
+  "credencial_eliminada",
+  "credencial_clave_actualizada",
+  "csv_subido",
+  "batch_confirmado",
+  "batch_cancelado",
+  "boleta_reintentada",
+  "archivo_procesado",
+]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -77,6 +88,25 @@ export const boletas = pgTable("boletas", {
   errorMessage: text("error_message"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Bitácora de auditoría: append-only, nunca se actualiza ni se borra.
+// entidadId NO lleva foreign key a propósito — un evento debe seguir
+// siendo legible aunque la credencial/batch referenciado deje de existir
+// (la entidad afectada se puede dar de baja, pero la auditoría es permanente).
+// Por eso cada evento guarda su propio snapshot de texto (razonSocialSnapshot,
+// rutSnapshot, descripcion) en vez de depender de un JOIN a datos mutables.
+export const auditEvents = pgTable("audit_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  actorEmail: text("actor_email").notNull(),
+  tipo: auditEventType("tipo").notNull(),
+  entidadId: uuid("entidad_id"),
+  razonSocialSnapshot: text("razon_social_snapshot"),
+  rutSnapshot: text("rut_snapshot"),
+  descripcion: text("descripcion").notNull(),
+  detalle: jsonb("detalle").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({

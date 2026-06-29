@@ -2,22 +2,34 @@ import { redirect } from "next/navigation";
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
+import { auth } from "@/auth";
+import { registrarEvento } from "@/lib/auditoria";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { EmisionesExplorer } from "@/components/EmisionesExplorer";
+import { EmisionesSubNav } from "@/components/EmisionesSubNav";
 
 async function reintentarBoleta(formData: FormData) {
   "use server";
   const userId = await requireUserId();
+  const session = await auth();
+  const actorEmail = session?.user?.email ?? "";
   const boletaId = String(formData.get("boletaId") ?? "");
   const batchId = String(formData.get("batchId") ?? "");
 
   await withUser(userId, async (tx) => {
     const [batch] = await tx
-      .select()
+      .select({
+        csvFilename: schema.batches.csvFilename,
+        emisorRazonSocial: schema.siiCredentials.emisorRazonSocial,
+        emisorRut: schema.siiCredentials.emisorRut,
+      })
       .from(schema.batches)
+      .innerJoin(schema.siiCredentials, eq(schema.batches.siiCredentialId, schema.siiCredentials.id))
       .where(and(eq(schema.batches.id, batchId), eq(schema.batches.userId, userId)));
 
     if (!batch) throw new Error("Batch no encontrado");
+
+    const [boleta] = await tx.select().from(schema.boletas).where(eq(schema.boletas.id, boletaId));
 
     await tx
       .update(schema.boletas)
@@ -28,6 +40,17 @@ async function reintentarBoleta(formData: FormData) {
       .update(schema.batches)
       .set({ status: "pending", errorMessage: null, finishedAt: null })
       .where(eq(schema.batches.id, batchId));
+
+    await registrarEvento(tx, {
+      userId,
+      actorEmail,
+      tipo: "boleta_reintentada",
+      entidadId: boletaId,
+      razonSocialSnapshot: batch.emisorRazonSocial,
+      rutSnapshot: batch.emisorRut,
+      descripcion: `Reintentó boleta de ${boleta?.nombre ?? "—"} en ${batch.csvFilename}`,
+      detalle: { batchId, csvFilename: batch.csvFilename },
+    });
   });
 
   redirect("/dashboard/emisiones");
@@ -48,7 +71,7 @@ export default async function EmisionesPage() {
       })
       .from(schema.batches)
       .innerJoin(schema.siiCredentials, eq(schema.batches.siiCredentialId, schema.siiCredentials.id))
-      .where(eq(schema.batches.userId, userId))
+      .where(and(eq(schema.batches.userId, userId), eq(schema.siiCredentials.activa, true)))
       .orderBy(desc(schema.batches.createdAt));
 
     const boletasTodas = filas.length
@@ -76,8 +99,9 @@ export default async function EmisionesPage() {
   return (
     <div className="fade-in mx-auto max-w-7xl p-4 md:p-8">
       <AutoRefresh activo={hayTrabajoEnProceso} />
+      <EmisionesSubNav />
 
-      <div className="mb-6 flex items-center justify-between border-b border-border pb-5">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-page">Emisiones</h1>
         <a
           href="/dashboard/emisiones/nueva"

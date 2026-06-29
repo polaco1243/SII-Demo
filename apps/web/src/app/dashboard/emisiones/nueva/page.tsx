@@ -4,6 +4,8 @@ import { parse } from "csv-parse/sync";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
 import { validarRut } from "@/lib/rut";
+import { auth } from "@/auth";
+import { registrarEvento } from "@/lib/auditoria";
 import { FileChipInput } from "@/components/FileChipInput";
 
 interface FilaCsv {
@@ -104,6 +106,8 @@ function validarFilas(filas: FilaCsv[], emisorRutEsperado: string): string | nul
 async function subirCsv(formData: FormData) {
   "use server";
   const userId = await requireUserId();
+  const session = await auth();
+  const actorEmail = session?.user?.email ?? "";
   const siiCredentialId = String(formData.get("siiCredentialId") ?? "");
   const archivo = formData.get("csv") as File | null;
 
@@ -164,6 +168,17 @@ async function subirCsv(formData: FormData) {
         };
       }),
     );
+
+    await registrarEvento(tx, {
+      userId,
+      actorEmail,
+      tipo: "csv_subido",
+      entidadId: batch.id,
+      razonSocialSnapshot: credencial.emisorRazonSocial,
+      rutSnapshot: credencial.emisorRut,
+      descripcion: `Subió "${archivo.name}" (${filas.length} fila${filas.length === 1 ? "" : "s"}) para ${credencial.emisorRazonSocial ?? credencial.rut}`,
+      detalle: { csvFilename: archivo.name, filas: filas.length },
+    });
 
     return batch.id;
   });
