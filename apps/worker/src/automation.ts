@@ -397,16 +397,28 @@ export class SIIAutomation {
   }
 
   private async descargarPdf(nombreArchivo: string): Promise<string> {
-    const [download] = await Promise.all([
-      this.p.waitForEvent("download"),
-      this.p.evaluate(() => {
-        const links = Array.from(document.querySelectorAll("a"));
-        const link = links.find(
-          (a) => a.innerText.includes("Descargar") && !a.classList.contains("disabled"),
-        );
-        (link as HTMLElement | undefined)?.click();
-      }),
-    ]);
+    let download;
+    try {
+      [download] = await Promise.all([
+        this.p.waitForEvent("download", { timeout: 15000 }),
+        this.p.evaluate(() => {
+          const links = Array.from(document.querySelectorAll("a"));
+          const link = links.find(
+            (a) => a.innerText.includes("Descargar") && !a.classList.contains("disabled"),
+          );
+          (link as HTMLElement | undefined)?.click();
+        }),
+      ]);
+    } catch {
+      // La boleta probablemente YA se emitió en el SII (el click en EMITIR
+      // ya se ejecutó antes de llegar aquí); este fallo es solo de la
+      // descarga del PDF. Se deja diagnóstico detallado para no confundir
+      // "no se pudo descargar" con "no se emitió".
+      const diagnostico = await this.capturarDiagnostico("descarga_pdf_no_encontrada");
+      throw new Error(
+        `La boleta se emitió en el SII pero no se pudo descargar el PDF automáticamente. Diagnóstico: ${diagnostico}`,
+      );
+    }
     const destino = `${this.descargasDir}/${nombreArchivo}`;
     await download.saveAs(destino);
     return destino;
