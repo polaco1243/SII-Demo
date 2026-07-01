@@ -177,6 +177,35 @@ export class SIIAutomation {
     );
     if (hayDialog) {
       await capturar("04_dialog");
+
+      // 5. Activar switches Receptor y Detalle dentro del modal para ver
+      //    labels reales de los campos condicionales (RUT/Nombre/Dirección
+      //    receptor pueden autocompletarse y no mostrar label visible).
+      await this.p.evaluate(() => {
+        const switches = Array.from(document.querySelectorAll(".v-input--switch"));
+        for (const sw of switches) {
+          const track = sw.querySelector(".v-input--switch__track");
+          (track as HTMLElement | null)?.click();
+        }
+      });
+      await sleep(800);
+      await capturar("05_switches_activos");
+
+      // 6. Escribir un RUT de prueba en el campo de receptor para ver si
+      //    autocompleta Nombre/Dirección
+      await this.p.evaluate(() => {
+        const inputs = document.querySelectorAll(".v-text-field input");
+        for (const input of Array.from(inputs)) {
+          const lbl = input.closest(".v-text-field")?.querySelector(".v-label");
+          if (lbl && lbl.textContent?.includes("RUT")) {
+            (input as HTMLInputElement).value = "11111111-1";
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            break;
+          }
+        }
+      });
+      await sleep(1500);
+      await capturar("06_rut_receptor_ingresado");
     }
 
     return capturados;
