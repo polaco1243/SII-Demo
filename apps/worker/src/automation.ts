@@ -132,85 +132,6 @@ export class SIIAutomation {
     await this.seleccionarEmisor(emisor);
   }
 
-  // Modo exploración: mapea la estructura real de la pantalla de emisión del
-  // SII (calculadora de monto + EMITIR) para descubrir dónde están las
-  // opciones de tipo de boleta, método de pago, receptor y detalle.
-  // Vuelca screenshots + HTML a /data/descargas para inspección manual.
-  async explorarEmision(): Promise<string[]> {
-    const ts = Date.now();
-    const capturados: string[] = [];
-    const capturar = async (etiqueta: string) => {
-      const png = `explor_${etiqueta}_${ts}.png`;
-      const html = `explor_${etiqueta}_${ts}.html`;
-      await this.p.screenshot({ path: `${this.descargasDir}/${png}`, fullPage: true }).catch(() => {});
-      await writeFile(`${this.descargasDir}/${html}`, await this.p.content()).catch(() => {});
-      capturados.push(png, html);
-    };
-
-    // 1. Pantalla inicial (monto = 0)
-    await capturar("01_inicial");
-
-    // 2. Ingresar un monto de prueba
-    for (const d of "1000") {
-      await this.p.evaluate((digito) => {
-        const btn = Array.from(document.querySelectorAll("button")).find(
-          (b) => b.innerText.trim() === digito,
-        );
-        btn?.click();
-      }, d);
-      await sleep(200);
-    }
-    await capturar("02_con_monto");
-
-    // 3. Click en EMITIR (mayúsculas, tal como aparece en el portal real)
-    await this.p.evaluate(() => {
-      const buttons = Array.from(document.querySelectorAll("button"));
-      const btn = buttons.find((b) => b.innerText.trim() === "EMITIR");
-      btn?.click();
-    });
-    await sleep(1500);
-    await capturar("03_post_emitir");
-
-    // 4. Si se abrió un dialog/modal (Vuetify), capturar también solo su HTML
-    const hayDialog = await this.p.evaluate(
-      () => !!document.querySelector(".v-dialog--active, .v-overlay--active"),
-    );
-    if (hayDialog) {
-      await capturar("04_dialog");
-
-      // 5. Activar switches Receptor y Detalle dentro del modal para ver
-      //    labels reales de los campos condicionales (RUT/Nombre/Dirección
-      //    receptor pueden autocompletarse y no mostrar label visible).
-      await this.p.evaluate(() => {
-        const switches = Array.from(document.querySelectorAll(".v-input--switch"));
-        for (const sw of switches) {
-          const track = sw.querySelector(".v-input--switch__track");
-          (track as HTMLElement | null)?.click();
-        }
-      });
-      await sleep(800);
-      await capturar("05_switches_activos");
-
-      // 6. Escribir un RUT de prueba en el campo de receptor para ver si
-      //    autocompleta Nombre/Dirección
-      await this.p.evaluate(() => {
-        const inputs = document.querySelectorAll(".v-text-field input");
-        for (const input of Array.from(inputs)) {
-          const lbl = input.closest(".v-text-field")?.querySelector(".v-label");
-          if (lbl && lbl.textContent?.includes("RUT")) {
-            (input as HTMLInputElement).value = "11111111-1";
-            input.dispatchEvent(new Event("input", { bubbles: true }));
-            break;
-          }
-        }
-      });
-      await sleep(1500);
-      await capturar("06_rut_receptor_ingresado");
-    }
-
-    return capturados;
-  }
-
   async descubrirEmisores(): Promise<string[]> {
     await this.start();
     try {
@@ -514,17 +435,6 @@ export class SIIAutomation {
     await this.start();
     try {
       await this.login(emisor);
-
-      // Modo exploración: captura la estructura del portal y falla a propósito
-      // sin emitir boletas reales. Se activa con EXPLORAR_SII=true.
-      if (process.env.EXPLORAR_SII === "true") {
-        const capturados = await this.explorarEmision();
-        return boletas.map((b) => ({
-          nombre: b.nombre,
-          exito: false,
-          error: `Modo exploración activo. Artefactos: ${capturados.join(", ")}`,
-        }));
-      }
 
       const resultados: BoletaResultado[] = [];
       for (const boleta of boletas) {
