@@ -1,4 +1,5 @@
 import { chromium, type Browser, type Page } from "playwright";
+import { writeFile } from "node:fs/promises";
 
 const SII_URL = "https://eboleta.sii.cl/emitir/";
 
@@ -129,6 +130,52 @@ export class SIIAutomation {
     await this.ingresarCredenciales();
     await this.abrirSelectorEmisorYListar();
     await this.seleccionarEmisor(emisor);
+  }
+
+  // Modo exploración: mapea la estructura real de la pantalla de emisión del
+  // SII (calculadora de monto + EMITIR) para descubrir dónde están las
+  // opciones de tipo de boleta, método de pago, receptor y detalle.
+  // Vuelca screenshots + HTML a /data/descargas para inspección manual.
+  async explorarEmision(): Promise<string[]> {
+    const ts = Date.now();
+    const capturados: string[] = [];
+    const capturar = async (etiqueta: string) => {
+      const png = `explor_${etiqueta}_${ts}.png`;
+      const html = `explor_${etiqueta}_${ts}.html`;
+      await this.p.screenshot({ path: `${this.descargasDir}/${png}`, fullPage: true }).catch(() => {});
+      await writeFile(`${this.descargasDir}/${html}`, await this.p.content()).catch(() => {});
+      capturados.push(png, html);
+    };
+
+    // 1. Pantalla inicial (monto = 0)
+    await capturar("01_inicial");
+
+    // 2. Menú hamburguesa abierto (probable ubicación de opciones)
+    await this.p.evaluate(() => {
+      const btn = document.querySelector(
+        'header button, .v-toolbar button, .v-app-bar button, .v-app-bar__nav-icon',
+      );
+      (btn as HTMLElement | null)?.click();
+    });
+    await sleep(1000);
+    await capturar("02_menu");
+
+    // 3. Cerrar menú (Escape) e ingresar un monto de prueba para ver si
+    //    aparecen controles adicionales al tener monto > 0
+    await this.p.keyboard.press("Escape").catch(() => {});
+    await sleep(500);
+    for (const d of "1000") {
+      await this.p.evaluate((digito) => {
+        const btn = Array.from(document.querySelectorAll("button")).find(
+          (b) => b.innerText.trim() === digito,
+        );
+        btn?.click();
+      }, d);
+      await sleep(200);
+    }
+    await capturar("03_con_monto");
+
+    return capturados;
   }
 
   async descubrirEmisores(): Promise<string[]> {
@@ -366,6 +413,18 @@ export class SIIAutomation {
     await this.start();
     try {
       await this.login(emisor);
+
+      // Modo exploración: captura la estructura del portal y falla a propósito
+      // sin emitir boletas reales. Se activa con EXPLORAR_SII=true.
+      if (process.env.EXPLORAR_SII === "true") {
+        const capturados = await this.explorarEmision();
+        return boletas.map((b) => ({
+          nombre: b.nombre,
+          exito: false,
+          error: `Modo exploración activo. Artefactos: ${capturados.join(", ")}`,
+        }));
+      }
+
       const resultados: BoletaResultado[] = [];
       for (const boleta of boletas) {
         try {
