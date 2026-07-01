@@ -396,41 +396,34 @@ export class SIIAutomation {
     await sleep(9000);
   }
 
+  // El link "DESCARGAR" del modal apunta directo a un PDF en S3 (prefirmado,
+  // con Content-Disposition que no siempre dispara el evento "download" del
+  // navegador). Es más confiable extraer el href y descargarlo por HTTP
+  // directo que depender de waitForEvent("download").
   private async descargarPdf(nombreArchivo: string): Promise<string> {
-    let download;
-    try {
-      [download] = await Promise.all([
-        this.p.waitForEvent("download", { timeout: 15000 }),
-        this.p.evaluate(() => {
-          const links = Array.from(document.querySelectorAll("a"));
-          const link = links.find(
-            (a) => a.innerText.includes("Descargar") && !a.classList.contains("disabled"),
-          );
-          (link as HTMLElement | undefined)?.click();
-        }),
-      ]);
-    } catch {
-      // La boleta probablemente YA se emitió en el SII (el click en EMITIR
-      // ya se ejecutó antes de llegar aquí); este fallo es solo de la
-      // descarga del PDF. Se listan todos los links/botones visibles para
-      // encontrar el selector correcto sin necesitar otra ronda de captura.
-      const diagnostico = await this.capturarDiagnostico("descarga_pdf_no_encontrada");
-      const candidatos = await this.p.evaluate(() => {
-        const elementos = Array.from(document.querySelectorAll("a, button"));
-        return elementos
-          .map((el) => {
-            const texto = (el as HTMLElement).innerText?.trim().replace(/\s+/g, " ") ?? "";
-            const iconos = Array.from(el.querySelectorAll("i")).map((i) => i.className).join(",");
-            return { tag: el.tagName.toLowerCase(), texto, iconos, href: (el as HTMLAnchorElement).href ?? "" };
-          })
-          .filter((e) => e.texto || e.iconos);
-      });
+    const href = await this.p.evaluate(() => {
+      const links = Array.from(document.querySelectorAll("a"));
+      const link = links.find((a) => a.innerText.toUpperCase().includes("DESCARGAR"));
+      return (link as HTMLAnchorElement | undefined)?.href ?? null;
+    });
+
+    if (!href) {
+      const diagnostico = await this.capturarDiagnostico("descarga_pdf_link_no_encontrado");
       throw new Error(
-        `La boleta se emitió en el SII pero no se pudo descargar el PDF automáticamente. Diagnóstico: ${diagnostico} | Elementos visibles: ${JSON.stringify(candidatos)}`,
+        `La boleta se emitió en el SII pero no se encontró el link "DESCARGAR". Diagnóstico: ${diagnostico}`,
       );
     }
+
+    const respuesta = await fetch(href);
+    if (!respuesta.ok) {
+      throw new Error(
+        `La boleta se emitió en el SII pero la descarga del PDF falló con status ${respuesta.status} en ${href}`,
+      );
+    }
+
     const destino = `${this.descargasDir}/${nombreArchivo}`;
-    await download.saveAs(destino);
+    const buffer = Buffer.from(await respuesta.arrayBuffer());
+    await writeFile(destino, buffer);
     return destino;
   }
 
