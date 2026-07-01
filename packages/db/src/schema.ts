@@ -11,7 +11,7 @@ export const credentialStatus = pgEnum("credential_status", [
   "error",
 ]);
 export const tipoBoletaEnum = pgEnum("tipo_boleta", ["exenta", "afecta"]);
-export const metodoPagoEnum = pgEnum("metodo_pago", ["debito", "credito", "efectivo", "otro"]);
+export const metodoPagoEnum = pgEnum("metodo_pago", ["debito", "credito", "efectivo", "otro", "transferencia"]);
 export const auditEventType = pgEnum("audit_event_type", [
   "credencial_agregada",
   "credencial_confirmada",

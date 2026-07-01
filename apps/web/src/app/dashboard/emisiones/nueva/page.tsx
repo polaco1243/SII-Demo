@@ -31,10 +31,15 @@ const MAX_FILAS_CSV = 200;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TELEFONO_RE = /^[\d+\s()-]+$/;
 const TIPOS_BOLETA = ["exenta", "afecta"] as const;
-const METODOS_PAGO = ["debito", "credito", "efectivo", "otro"] as const;
+const METODOS_PAGO = ["debito", "credito", "efectivo", "otro", "transferencia"] as const;
 
 function esSiNo(valor: string | undefined): boolean | null {
-  const v = (valor ?? "").trim().toUpperCase();
+  // Normalizar: quitar tildes para aceptar "Sí"/"sí" → "SI" y "Nó" → "NO"
+  const v = (valor ?? "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase();
   if (v === "SI") return true;
   if (v === "NO") return false;
   return null;
@@ -76,7 +81,7 @@ function validarFilas(filas: FilaCsv[], emisorRutEsperado: string): string | nul
 
     const metodoPago = fila.MetodoPago?.trim().toLowerCase();
     if (!METODOS_PAGO.includes(metodoPago as (typeof METODOS_PAGO)[number])) {
-      return `fila ${numFila}: MetodoPago debe ser debito, credito, efectivo u otro`;
+      return `fila ${numFila}: MetodoPago debe ser debito, credito, efectivo, transferencia u otro`;
     }
 
     const conReceptor = esSiNo(fila.Receptor);
@@ -277,8 +282,8 @@ export default async function NuevaEmisionPage({
         <ul className="flex flex-col gap-2.5 text-sm text-muted">
           {[
             "RutContribuyente debe coincidir con el emisor seleccionado",
-            "Receptor y ConDetalle van con SI/NO",
-            "Si Receptor=SI: RutReceptor, NombreReceptor, DireccionReceptor, EmailReceptor y TelefonoReceptor son obligatorios",
+            "Receptor y ConDetalle van con SI o NO",
+            "Si Receptor=SI: RutReceptor, NombreReceptor, DireccionReceptor, EmailReceptor y TelefonoReceptor son obligatorios. Si Receptor=NO, esos campos se ignoran.",
             "Si ConDetalle=SI: Detalle es obligatorio",
             "Máximo 200 filas por archivo",
           ].map((texto) => (

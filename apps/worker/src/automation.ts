@@ -14,7 +14,7 @@ export interface BoletaInput {
   nombre: string;
   monto: number;
   tipoBoleta: "exenta" | "afecta";
-  metodoPago: "debito" | "credito" | "efectivo" | "otro";
+  metodoPago: "debito" | "credito" | "efectivo" | "otro" | "transferencia";
   conReceptor: boolean;
   receptorRut?: string | null;
   receptorNombre?: string | null;
@@ -36,6 +36,7 @@ const TEXTO_METODO_PAGO: Record<BoletaInput["metodoPago"], string> = {
   credito: "Crédito",
   efectivo: "Efectivo",
   otro: "Otro",
+  transferencia: "Transferencia",
 };
 
 export interface BoletaResultado {

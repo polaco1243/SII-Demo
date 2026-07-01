@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { withUser, schema } from "@sii-demo/db";
 import { encrypt } from "@sii-demo/crypto";
 import { requireUserId } from "@/lib/session";
@@ -16,6 +16,10 @@ import { Tooltip } from "@/components/Tooltip";
 async function actorEmailActual(): Promise<string> {
   const session = await auth();
   return session?.user?.email ?? "";
+}
+
+function formatCLP(monto: number): string {
+  return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(monto);
 }
 
 const RUT_EMISOR_RE = /^([\d.]+-[\dkK])\s+(.*)$/;
@@ -232,12 +236,37 @@ export default async function CredencialesPage({
 }) {
   const { error, ok, editando } = await searchParams;
   const userId = await requireUserId();
-  const credenciales = await withUser(userId, (tx) =>
-    tx
+
+  const { credenciales, metricas } = await withUser(userId, async (tx) => {
+    const credenciales = await tx
       .select()
       .from(schema.siiCredentials)
-      .where(and(eq(schema.siiCredentials.userId, userId), eq(schema.siiCredentials.activa, true))),
-  );
+      .where(and(eq(schema.siiCredentials.userId, userId), eq(schema.siiCredentials.activa, true)));
+
+    const metricas = await tx
+      .select({
+        credencialId: schema.siiCredentials.id,
+        emisorRazonSocial: schema.siiCredentials.emisorRazonSocial,
+        emisorRut: schema.siiCredentials.emisorRut,
+        archivos: sql<number>`count(distinct ${schema.batches.id})::integer`,
+        boletasExito: sql<number>`count(${schema.boletas.id}) filter (where ${schema.boletas.status} = 'success')::integer`,
+        boletasError: sql<number>`count(${schema.boletas.id}) filter (where ${schema.boletas.status} = 'failed')::integer`,
+        montoTotal: sql<number>`coalesce(sum(${schema.boletas.monto}) filter (where ${schema.boletas.status} = 'success'), 0)::integer`,
+      })
+      .from(schema.siiCredentials)
+      .leftJoin(schema.batches, eq(schema.batches.siiCredentialId, schema.siiCredentials.id))
+      .leftJoin(schema.boletas, eq(schema.boletas.batchId, schema.batches.id))
+      .where(
+        and(
+          eq(schema.siiCredentials.userId, userId),
+          eq(schema.siiCredentials.activa, true),
+          eq(schema.siiCredentials.status, "lista"),
+        ),
+      )
+      .groupBy(schema.siiCredentials.id);
+
+    return { credenciales, metricas };
+  });
 
   const hayTrabajoEnProceso = credenciales.some(
     (c) => c.status === "pendiente" || c.status === "descubriendo",
@@ -340,6 +369,66 @@ export default async function CredencialesPage({
         </div>
       </details>
 
+      {metricas.length > 0 && metricas.some((m) => m.archivos > 0) && (() => {
+        const totalExito = metricas.reduce((s, m) => s + m.boletasExito, 0);
+        const totalError = metricas.reduce((s, m) => s + m.boletasError, 0);
+        const totalMonto = metricas.reduce((s, m) => s + m.montoTotal, 0);
+        return (
+          <div className="mb-10">
+            <h2 className="mb-3 text-section">Actividad</h2>
+            <div className="mb-3 glass-panel rounded-xl border border-white/[0.06] p-4">
+              <p className="mb-2 text-xs font-medium text-muted">Total cuenta</p>
+              <div className="flex flex-wrap gap-6">
+                <div>
+                  <p className="text-2xl font-semibold text-success">{totalExito.toLocaleString("es-CL")}</p>
+                  <p className="text-xs text-muted">Boletas emitidas</p>
+                </div>
+                {totalError > 0 && (
+                  <div>
+                    <p className="text-2xl font-semibold text-danger">{totalError.toLocaleString("es-CL")}</p>
+                    <p className="text-xs text-muted">Con error</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-2xl font-semibold">{formatCLP(totalMonto)}</p>
+                  <p className="text-xs text-muted">Monto facturado</p>
+                </div>
+              </div>
+            </div>
+            {metricas.length > 1 && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {metricas.filter((m) => m.archivos > 0).map((m) => (
+                  <div key={m.credencialId} className="glass-panel rounded-card border border-white/[0.06] p-4">
+                    <p className="truncate font-medium">{m.emisorRazonSocial}</p>
+                    <p className="mb-3 text-xs text-faint">{m.emisorRut}</p>
+                    <div className="flex flex-wrap gap-4">
+                      <div className="text-center">
+                        <p className="font-semibold">{m.archivos}</p>
+                        <p className="text-xs text-muted">Archivos</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="font-semibold text-success">{m.boletasExito.toLocaleString("es-CL")}</p>
+                        <p className="text-xs text-muted">Exitosas</p>
+                      </div>
+                      {m.boletasError > 0 && (
+                        <div className="text-center">
+                          <p className="font-semibold text-danger">{m.boletasError.toLocaleString("es-CL")}</p>
+                          <p className="text-xs text-muted">Con error</p>
+                        </div>
+                      )}
+                      <div className="text-center">
+                        <p className="font-semibold">{formatCLP(m.montoTotal)}</p>
+                        <p className="text-xs text-muted">Facturado</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {grupos.size > 0 && (
         <div className="mb-10">
           <h2 className="mb-3 text-section">Tus credenciales</h2>
@@ -360,7 +449,7 @@ export default async function CredencialesPage({
               return (
                 <li
                   key={rut}
-                  className="glass-panel gradient-border bento-card overflow-hidden rounded-xl shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]"
+                  className="glass-panel gradient-border bento-card rounded-xl shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_1px_-0.5px_rgba(0,0,0,0.06),0px_3px_3px_-1.5px_rgba(0,0,0,0.06),0px_6px_6px_-3px_rgba(0,0,0,0.06),0px_12px_12px_-6px_rgba(0,0,0,0.06),0px_24px_24px_-12px_rgba(0,0,0,0.06)]"
                 >
                   <details open={editandoEsteRut || necesitaAtencion} className="group">
                     <summary className="flex cursor-pointer list-none items-center justify-between p-4 transition-colors hover:bg-surface-2">
