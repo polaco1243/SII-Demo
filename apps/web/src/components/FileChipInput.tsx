@@ -5,6 +5,18 @@ import { useRef, useState } from "react";
 export function FileChipInput() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [nombre, setNombre] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(false);
+
+  const onCambio = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0];
+    if (!archivo) return;
+    setCargando(true);
+    setNombre(null);
+    setTimeout(() => {
+      setNombre(archivo.name);
+      setCargando(false);
+    }, 250);
+  };
 
   return (
     <div>
@@ -14,14 +26,23 @@ export function FileChipInput() {
         type="file"
         accept=".csv"
         required
-        onChange={(e) => setNombre(e.target.files?.[0]?.name ?? null)}
+        onChange={onCambio}
         className={
-          nombre
+          nombre || cargando
             ? "sr-only"
             : "text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text hover:file:bg-border"
         }
       />
-      {nombre && (
+      {cargando && (
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-2.5 py-1 text-caption text-muted">
+          <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          Leyendo archivo…
+        </span>
+      )}
+      {!cargando && nombre && (
         <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-caption font-medium text-success shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)]">
           <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3 shrink-0" aria-hidden="true">
             <path

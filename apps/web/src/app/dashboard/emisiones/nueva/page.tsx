@@ -7,6 +7,7 @@ import { validarRut } from "@/lib/rut";
 import { auth } from "@/auth";
 import { registrarEvento } from "@/lib/auditoria";
 import { FileChipInput } from "@/components/FileChipInput";
+import { SubmitButton } from "@/components/SubmitButton";
 
 interface FilaCsv {
   RutContribuyente: string;
@@ -60,15 +61,11 @@ function validarFilas(filas: FilaCsv[], emisorRutEsperado: string): string | nul
       return `fila ${numFila}: RutContribuyente (${fila.RutContribuyente}) no coincide con el RUT del emisor seleccionado (${emisorRutEsperado})`;
     }
 
-    if (!fila.NombreCliente || fila.NombreCliente.trim().length < 4) {
-      return `fila ${numFila}: NombreCliente debe tener al menos 4 caracteres`;
-    }
-    if (!fila.RutCliente1 || !validarRut(fila.RutCliente1)) {
+    if (fila.RutCliente1?.trim() && !validarRut(fila.RutCliente1)) {
       return `fila ${numFila}: RutCliente1 inválido`;
     }
 
-    if (!fila.Nombre?.trim()) return `fila ${numFila}: falta el Nombre`;
-    if (fila.Nombre.trim().length > 200) return `fila ${numFila}: Nombre muy largo`;
+    if (fila.Nombre && fila.Nombre.trim().length > 200) return `fila ${numFila}: Nombre muy largo`;
 
     const monto = Number(fila.Monto);
     if (!fila.Monto || Number.isNaN(monto)) return `fila ${numFila}: Monto inválido`;
@@ -155,9 +152,9 @@ async function subirCsv(formData: FormData) {
         return {
           batchId: batch.id,
           rutContribuyente: f.RutContribuyente.trim(),
-          nombreCliente: f.NombreCliente.trim(),
-          rutCliente1: f.RutCliente1.trim(),
-          nombre: f.Nombre.trim(),
+          nombreCliente: f.NombreCliente?.trim() ?? "",
+          rutCliente1: f.RutCliente1?.trim() ?? "",
+          nombre: f.Nombre?.trim() ?? "",
           monto: Math.round(Number(f.Monto)),
           tipoBoleta: f.TipoBoleta.trim().toLowerCase() as (typeof TIPOS_BOLETA)[number],
           metodoPago: f.MetodoPago.trim().toLowerCase() as (typeof METODOS_PAGO)[number],
@@ -267,36 +264,97 @@ export default async function NuevaEmisionPage({
               ))}
             </select>
             <FileChipInput />
-            <button
-              type="submit"
+            <SubmitButton
+              label="Subir y encolar"
+              pendingLabel="Cargando..."
               className="btn-primary self-start rounded-md px-3 py-2"
-            >
-              Subir y encolar
-            </button>
+            />
           </form>
         )}
       </section>
 
       <aside className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-5 backdrop-blur-xl">
-        <h2 className="mb-3 text-section">Tu CSV debe cumplir</h2>
-        <ul className="flex flex-col gap-2.5 text-sm text-muted">
-          {[
-            "RutContribuyente debe coincidir con el emisor seleccionado",
-            "Receptor y ConDetalle van con SI o NO",
-            "Si Receptor=SI: RutReceptor, NombreReceptor, DireccionReceptor, EmailReceptor y TelefonoReceptor son obligatorios. Si Receptor=NO, esos campos se ignoran.",
-            "Si ConDetalle=SI: Detalle es obligatorio",
-            "Máximo 200 filas por archivo",
-          ].map((texto) => (
-            <li key={texto} className="flex items-start gap-2.5">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3 text-success" aria-hidden="true">
-                  <path d="M4 10.5 8 14.5 16 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <span>{texto}</span>
-            </li>
-          ))}
-        </ul>
+        <h2 className="mb-4 text-section">Columnas del CSV</h2>
+
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Siempre obligatorias</p>
+        <div className="mb-4 overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-white/10 text-left text-faint">
+                <th className="pb-1.5 pr-4 font-medium">Columna</th>
+                <th className="pb-1.5 font-medium">Valores aceptados</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.05] text-muted">
+              {[
+                ["RutContribuyente", "RUT del emisor seleccionado (ej. 77.936.055-5)"],
+                ["Monto", "Entero positivo en CLP (ej. 15000)"],
+                ["TipoBoleta", "exenta  |  afecta"],
+                ["MetodoPago", "debito  |  credito  |  efectivo  |  transferencia  |  otro"],
+                ["Receptor", "SI  |  NO"],
+                ["ConDetalle", "SI  |  NO"],
+              ].map(([col, val]) => (
+                <tr key={col}>
+                  <td className="py-1.5 pr-4 font-mono text-text">{col}</td>
+                  <td className="py-1.5">{val}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Solo si Receptor = SI</p>
+        <div className="mb-4 overflow-x-auto">
+          <table className="w-full text-xs">
+            <tbody className="divide-y divide-white/[0.05] text-muted">
+              {[
+                ["RutReceptor", "RUT válido"],
+                ["NombreReceptor", "Mín. 4 caracteres"],
+                ["DireccionReceptor", "Mín. 5 caracteres"],
+                ["EmailReceptor", "Email válido"],
+                ["TelefonoReceptor", "Solo números, espacios y + ( ) -"],
+              ].map(([col, val]) => (
+                <tr key={col}>
+                  <td className="py-1.5 pr-4 font-mono text-text">{col}</td>
+                  <td className="py-1.5">{val}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Solo si ConDetalle = SI</p>
+        <div className="mb-4 overflow-x-auto">
+          <table className="w-full text-xs">
+            <tbody className="text-muted">
+              <tr>
+                <td className="py-1.5 pr-4 font-mono text-text">Detalle</td>
+                <td className="py-1.5 text-xs">Texto (máx. 80 caracteres)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Opcionales</p>
+        <div className="mb-4 overflow-x-auto">
+          <table className="w-full text-xs">
+            <tbody className="divide-y divide-white/[0.05] text-muted">
+              {[
+                ["NombreCliente", "Nombre del cliente"],
+                ["RutCliente1", "RUT del cliente (si se incluye, debe ser válido)"],
+                ["Nombre", "Descripción de la boleta (máx. 200 caracteres)"],
+                ["Mail", "Email para enviar la boleta al cliente"],
+              ].map(([col, val]) => (
+                <tr key={col}>
+                  <td className="py-1.5 pr-4 font-mono text-text">{col}</td>
+                  <td className="py-1.5">{val}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mt-2 text-xs text-faint">Separador: punto y coma (;) · Máximo 200 filas por archivo</p>
       </aside>
     </div>
   );
