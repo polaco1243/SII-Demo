@@ -412,11 +412,21 @@ export class SIIAutomation {
     } catch {
       // La boleta probablemente YA se emitió en el SII (el click en EMITIR
       // ya se ejecutó antes de llegar aquí); este fallo es solo de la
-      // descarga del PDF. Se deja diagnóstico detallado para no confundir
-      // "no se pudo descargar" con "no se emitió".
+      // descarga del PDF. Se listan todos los links/botones visibles para
+      // encontrar el selector correcto sin necesitar otra ronda de captura.
       const diagnostico = await this.capturarDiagnostico("descarga_pdf_no_encontrada");
+      const candidatos = await this.p.evaluate(() => {
+        const elementos = Array.from(document.querySelectorAll("a, button"));
+        return elementos
+          .map((el) => {
+            const texto = (el as HTMLElement).innerText?.trim().replace(/\s+/g, " ") ?? "";
+            const iconos = Array.from(el.querySelectorAll("i")).map((i) => i.className).join(",");
+            return { tag: el.tagName.toLowerCase(), texto, iconos, href: (el as HTMLAnchorElement).href ?? "" };
+          })
+          .filter((e) => e.texto || e.iconos);
+      });
       throw new Error(
-        `La boleta se emitió en el SII pero no se pudo descargar el PDF automáticamente. Diagnóstico: ${diagnostico}`,
+        `La boleta se emitió en el SII pero no se pudo descargar el PDF automáticamente. Diagnóstico: ${diagnostico} | Elementos visibles: ${JSON.stringify(candidatos)}`,
       );
     }
     const destino = `${this.descargasDir}/${nombreArchivo}`;
