@@ -221,15 +221,31 @@ export class SIIAutomation {
     }
   }
 
+  // La pantalla principal es una calculadora de monto. Al presionar EMITIR
+  // (mayúsculas) con monto > 0 se abre un modal "Emitir e-Boleta" que
+  // contiene los controles reales (tipo de boleta, método de pago,
+  // receptor, detalle). Este método ingresa el monto y espera el modal.
   private async clickEmitirInicial(): Promise<void> {
-    await this.p.evaluate(() => {
+    const clickeado = await this.p.evaluate(() => {
       const buttons = Array.from(document.querySelectorAll("button"));
-      const btn = buttons.find(
-        (b) => b.innerText.trim() === "Emitir" && b.classList.contains("success"),
-      );
-      btn?.click();
+      const btn = buttons.find((b) => b.innerText.trim() === "EMITIR" && b.classList.contains("success"));
+      if (btn && !(btn as HTMLButtonElement).disabled) {
+        btn.click();
+        return true;
+      }
+      return false;
     });
-    await sleep(1000);
+    if (!clickeado) {
+      const diagnostico = await this.capturarDiagnostico("emitir_inicial_no_encontrado");
+      throw new Error(`No se encontró el botón EMITIR inicial. Diagnóstico: ${diagnostico}`);
+    }
+    try {
+      await this.p.waitForSelector(".v-dialog--active", { state: "visible", timeout: 10000 });
+    } catch {
+      const diagnostico = await this.capturarDiagnostico("modal_emitir_no_aparecio");
+      throw new Error(`No apareció el modal "Emitir e-Boleta". Diagnóstico: ${diagnostico}`);
+    }
+    await sleep(500);
   }
 
   private async toggleSwitchPorTexto(texto: string): Promise<void> {
@@ -293,7 +309,35 @@ export class SIIAutomation {
     await sleep(500);
   }
 
-  private async seleccionarTipoBoleta(tipo: BoletaInput["tipoBoleta"]): Promise<void> {
+  // El dropdown de tipo de boleta a veces viene bloqueado (v-input--is-disabled)
+  // porque el emisor solo tiene habilitado un tipo según su actividad económica.
+  // En ese caso no se puede cambiar: solo se valida que coincida con lo pedido.
+  private async verificarOSeleccionarTipoBoleta(tipo: BoletaInput["tipoBoleta"]): Promise<void> {
+    const estado = await this.p.evaluate(() => {
+      const selects = Array.from(document.querySelectorAll(".v-select"));
+      const target = selects.find((s) => (s as HTMLElement).innerText.includes("Boleta"));
+      if (!target) return { encontrado: false, disabled: false, texto: "" };
+      return {
+        encontrado: true,
+        disabled: target.classList.contains("v-input--is-disabled"),
+        texto: (target as HTMLElement).innerText.trim(),
+      };
+    });
+
+    if (!estado.encontrado) {
+      const diagnostico = await this.capturarDiagnostico("tipo_boleta_no_encontrado");
+      throw new Error(`No se encontró el selector de tipo de boleta. Diagnóstico: ${diagnostico}`);
+    }
+
+    if (estado.disabled) {
+      if (!estado.texto.includes(TEXTO_TIPO_BOLETA[tipo])) {
+        throw new Error(
+          `El emisor solo permite "${estado.texto}" en el portal SII, pero el CSV pide "${TEXTO_TIPO_BOLETA[tipo]}"`,
+        );
+      }
+      return;
+    }
+
     await this.seleccionarEnDropdownPorAncla("Boleta", TEXTO_TIPO_BOLETA[tipo]);
   }
 
@@ -329,17 +373,26 @@ export class SIIAutomation {
     }
   }
 
+  // Botón EMITIR de confirmación dentro del modal (distinto del EMITIR
+  // inicial de la pantalla principal, que ya no está visible en este punto).
   private async clickEmitirFinal(): Promise<void> {
-    await this.p.evaluate(() => {
-      const buttons = Array.from(document.querySelectorAll("button"));
+    const clickeado = await this.p.evaluate(() => {
+      const dialog = document.querySelector(".v-dialog--active");
+      if (!dialog) return false;
+      const buttons = Array.from(dialog.querySelectorAll("button"));
       const btn = buttons.find(
-        (b) =>
-          (b.innerText.trim() === "EMITIR" || b.innerText.trim() === "Emitir") &&
-          b.classList.contains("success") &&
-          !(b as HTMLButtonElement).disabled,
+        (b) => b.innerText.trim().toUpperCase() === "EMITIR" && !(b as HTMLButtonElement).disabled,
       );
-      btn?.click();
+      if (btn) {
+        btn.click();
+        return true;
+      }
+      return false;
     });
+    if (!clickeado) {
+      const diagnostico = await this.capturarDiagnostico("emitir_final_no_encontrado");
+      throw new Error(`No se encontró el botón EMITIR de confirmación. Diagnóstico: ${diagnostico}`);
+    }
     await sleep(9000);
   }
 
@@ -390,8 +443,9 @@ export class SIIAutomation {
   }
 
   async emitirBoleta(boleta: BoletaInput): Promise<string> {
+    await this.ingresarMonto(boleta.monto);
     await this.clickEmitirInicial();
-    await this.seleccionarTipoBoleta(boleta.tipoBoleta);
+    await this.verificarOSeleccionarTipoBoleta(boleta.tipoBoleta);
     await this.seleccionarMetodoPago(boleta.metodoPago);
 
     if (boleta.conReceptor) {
@@ -403,7 +457,6 @@ export class SIIAutomation {
       await this.fillDetalle(boleta.detalle);
     }
 
-    await this.ingresarMonto(boleta.monto);
     await this.clickEmitirFinal();
 
     const nombreArchivo = `boleta_${boleta.nombre.replace(/\s+/g, "_")}.pdf`;
