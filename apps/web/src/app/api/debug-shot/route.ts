@@ -2,14 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { db, schema } from "@sii-demo/db";
-import { desc, isNotNull } from "drizzle-orm";
+import { desc, isNotNull, eq } from "drizzle-orm";
 
 const DIR = process.env.DESCARGAS_DIR ?? "/data/descargas";
 
 export async function GET(req: NextRequest) {
   const file = req.nextUrl.searchParams.get("file");
   const errores = req.nextUrl.searchParams.get("errores");
+  const exitosas = req.nextUrl.searchParams.get("exitosas");
   try {
+    if (exitosas) {
+      const ultimas = await db
+        .select({
+          id: schema.boletas.id,
+          nombre: schema.boletas.nombre,
+          pdfPath: schema.boletas.pdfPath,
+          updatedAt: schema.boletas.updatedAt,
+        })
+        .from(schema.boletas)
+        .where(eq(schema.boletas.status, "success"))
+        .orderBy(desc(schema.boletas.updatedAt))
+        .limit(5);
+      return NextResponse.json({ ultimas });
+    }
     if (errores) {
       const ultimas = await db
         .select({
