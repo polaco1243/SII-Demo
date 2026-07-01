@@ -150,20 +150,7 @@ export class SIIAutomation {
     // 1. Pantalla inicial (monto = 0)
     await capturar("01_inicial");
 
-    // 2. Menú hamburguesa abierto (probable ubicación de opciones)
-    await this.p.evaluate(() => {
-      const btn = document.querySelector(
-        'header button, .v-toolbar button, .v-app-bar button, .v-app-bar__nav-icon',
-      );
-      (btn as HTMLElement | null)?.click();
-    });
-    await sleep(1000);
-    await capturar("02_menu");
-
-    // 3. Cerrar menú (Escape) e ingresar un monto de prueba para ver si
-    //    aparecen controles adicionales al tener monto > 0
-    await this.p.keyboard.press("Escape").catch(() => {});
-    await sleep(500);
+    // 2. Ingresar un monto de prueba
     for (const d of "1000") {
       await this.p.evaluate((digito) => {
         const btn = Array.from(document.querySelectorAll("button")).find(
@@ -173,7 +160,24 @@ export class SIIAutomation {
       }, d);
       await sleep(200);
     }
-    await capturar("03_con_monto");
+    await capturar("02_con_monto");
+
+    // 3. Click en EMITIR (mayúsculas, tal como aparece en el portal real)
+    await this.p.evaluate(() => {
+      const buttons = Array.from(document.querySelectorAll("button"));
+      const btn = buttons.find((b) => b.innerText.trim() === "EMITIR");
+      btn?.click();
+    });
+    await sleep(1500);
+    await capturar("03_post_emitir");
+
+    // 4. Si se abrió un dialog/modal (Vuetify), capturar también solo su HTML
+    const hayDialog = await this.p.evaluate(
+      () => !!document.querySelector(".v-dialog--active, .v-overlay--active"),
+    );
+    if (hayDialog) {
+      await capturar("04_dialog");
+    }
 
     return capturados;
   }
