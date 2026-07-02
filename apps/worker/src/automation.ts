@@ -317,6 +317,19 @@ export class SIIAutomation {
     await sleep(9000);
   }
 
+  // Extrae el folio de la boleta desde el texto del modal de confirmación.
+  // SII muestra algo como "BOLETA EXENTA ELECTRÓNICA NUMERO: 405".
+  // Retorna el folio como string, o null si no se puede leer.
+  private async capturarFolio(): Promise<string | null> {
+    return this.p.evaluate(() => {
+      const dialog = document.querySelector(".v-dialog--active");
+      if (!dialog) return null;
+      const texto = dialog.textContent ?? "";
+      const match = texto.match(/N[ºUMERO\s:°]+\s*(\d+)/i);
+      return match ? match[1] : null;
+    });
+  }
+
   // El link "DESCARGAR" del modal apunta directo a un PDF en S3 (prefirmado,
   // con Content-Disposition que no siempre dispara el evento "download" del
   // navegador). Es más confiable extraer el href y descargarlo por HTTP
@@ -395,7 +408,11 @@ export class SIIAutomation {
 
     await this.clickEmitirFinal();
 
-    const nombreArchivo = `boleta_${boleta.nombre.replace(/\s+/g, "_")}.pdf`;
+    const hoy = new Date();
+    const fecha = `${hoy.getFullYear()}${String(hoy.getMonth() + 1).padStart(2, "0")}${String(hoy.getDate()).padStart(2, "0")}`;
+    const folio = await this.capturarFolio();
+    const sufijo = folio ?? `${String(hoy.getHours()).padStart(2, "0")}${String(hoy.getMinutes()).padStart(2, "0")}${String(hoy.getSeconds()).padStart(2, "0")}`;
+    const nombreArchivo = `boleta_${fecha}_${sufijo}.pdf`;
     const destino = await this.descargarPdf(nombreArchivo);
 
     if (boleta.email) {
