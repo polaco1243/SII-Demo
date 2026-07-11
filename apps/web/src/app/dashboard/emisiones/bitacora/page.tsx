@@ -55,7 +55,7 @@ export default async function BitacoraPage({
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-page">Bitácora de auditoría</h1>
-          <p className="text-sm text-muted">Registro permanente de toda actividad de la cuenta en Emisiones. No editable.</p>
+          <p className="text-sm text-muted">Registro permanente de toda actividad de la cuenta. No editable.</p>
         </div>
         <ExportCsvButton href={`/api/bitacora/export?${queryExport}`} />
       </div>

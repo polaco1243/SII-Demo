@@ -102,12 +102,12 @@ export default async function EmisionesPage() {
       <EmisionesSubNav />
 
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-page">Emisiones</h1>
+        <h1 className="text-page">Boletas</h1>
         <a
           href="/dashboard/emisiones/nueva"
           className="btn-primary rounded-md px-4 py-2 text-sm"
         >
-          + Nueva emisión
+          + Nueva boleta
         </a>
       </div>
 

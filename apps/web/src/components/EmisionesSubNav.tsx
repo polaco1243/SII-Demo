@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ITEMS = [
-  { href: "/dashboard/emisiones", label: "Emisiones" },
+  { href: "/dashboard/emisiones", label: "Boletas" },
   { href: "/dashboard/emisiones/historial", label: "Historial completo" },
   { href: "/dashboard/emisiones/bitacora", label: "Bitácora de auditoría" },
 ];

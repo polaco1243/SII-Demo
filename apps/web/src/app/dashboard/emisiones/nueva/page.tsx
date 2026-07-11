@@ -212,11 +212,11 @@ export default async function NuevaEmisionPage({
   return (
     <div className="fade-in mx-auto max-w-3xl p-4 md:p-8">
       <a href="/dashboard/emisiones" className="inline-block rounded text-sm font-medium text-accent transition-colors hover:text-accent-hover">
-        ← Volver a Emisiones
+        ← Volver a Boletas
       </a>
 
       <div className="mb-4 mt-2 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-        <h1 className="text-page">Nueva emisión por CSV</h1>
+        <h1 className="text-page">Nueva boleta por CSV</h1>
         <div className="flex gap-2">
           <a
             href="/ejemplo-boletas.csv"

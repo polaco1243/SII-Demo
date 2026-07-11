@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { eq, inArray } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { withUser, schema } from "@sii-demo/db";
 import { requireUserId } from "@/lib/session";
 import { auth } from "@/auth";
@@ -61,7 +61,7 @@ export default async function DashboardPage({
     const batches = await tx
       .select()
       .from(schema.batches)
-      .where(eq(schema.batches.userId, userId));
+      .where(and(eq(schema.batches.userId, userId), eq(schema.batches.tipoDocumento, "boleta")));
 
     const boletasTodas = batches.length
       ? await tx.select().from(schema.boletas).where(inArray(schema.boletas.batchId, batches.map((b) => b.id)))
@@ -146,7 +146,7 @@ export default async function DashboardPage({
             <div className="text-xl font-medium text-text">{boletasEmitidas.toLocaleString("es-CL")}</div>
           </div>
           <div className="rounded-lg border border-border bg-white/[0.02] p-4">
-            <h3 className="mb-1 text-xs text-faint">Emisiones totales</h3>
+            <h3 className="mb-1 text-xs text-faint">Boletas totales</h3>
             <div className="text-xl font-medium text-text">{batchesFiltrados.length}</div>
           </div>
           <div className="rounded-lg border border-border bg-white/[0.02] p-4">
