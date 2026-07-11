@@ -3,18 +3,19 @@ import { eq, asc, and, ne } from "drizzle-orm";
 import { db, schema } from "@sii-demo/db";
 import { decrypt } from "@sii-demo/crypto";
 import { SIIAutomation } from "./automation";
+import { SIIFacturaAutomation, type FacturaInput } from "./factura-automation";
 
-const { batches, boletas, siiCredentials, auditEvents } = schema;
+const { batches, boletas, facturas, facturaItems, siiCredentials, auditEvents } = schema;
 
 const POLL_INTERVAL_MS = 15_000;
 const DESCARGAS_DIR = process.env.DESCARGAS_DIR ?? "/data/descargas";
 
-async function claimNextBatch() {
+async function claimNextBatch(tipoDocumento: "boleta" | "factura") {
   return db.transaction(async (tx) => {
     const rows = await tx
       .select()
       .from(batches)
-      .where(eq(batches.status, "pending"))
+      .where(and(eq(batches.status, "pending"), eq(batches.tipoDocumento, tipoDocumento)))
       .orderBy(asc(batches.createdAt))
       .limit(1)
       .for("update", { skipLocked: true });
@@ -111,6 +112,112 @@ async function processBatch(batch: typeof schema.batches.$inferSelect) {
   });
 }
 
+async function processFacturaBatch(batch: typeof schema.batches.$inferSelect) {
+  const [credencial] = await db
+    .select()
+    .from(siiCredentials)
+    .where(eq(siiCredentials.id, batch.siiCredentialId))
+    .limit(1);
+
+  if (!credencial || !credencial.emisorRazonSocial) {
+    await db
+      .update(batches)
+      .set({ status: "failed", errorMessage: "Credencial SII sin emisor confirmado", finishedAt: new Date() })
+      .where(eq(batches.id, batch.id));
+    return;
+  }
+
+  const cabeceras = await db
+    .select()
+    .from(facturas)
+    .where(and(eq(facturas.batchId, batch.id), ne(facturas.status, "success")));
+
+  const itemsPorFactura = new Map<string, (typeof facturaItems.$inferSelect)[]>();
+  for (const cabecera of cabeceras) {
+    const items = await db
+      .select()
+      .from(facturaItems)
+      .where(eq(facturaItems.facturaId, cabecera.id))
+      .orderBy(asc(facturaItems.orden));
+    itemsPorFactura.set(cabecera.id, items);
+  }
+
+  const clave = decrypt(credencial.claveEncrypted);
+  const automation = new SIIFacturaAutomation(credencial.rut, clave, DESCARGAS_DIR, true);
+
+  const facturasParaEmitir: FacturaInput[] = cabeceras.map((c) => ({
+    facturaRef: c.facturaRef,
+    receptorRut: c.receptorRut,
+    receptorDv: c.receptorDv,
+    receptorRazonSocial: c.receptorRazonSocial,
+    receptorTipoCompra: c.receptorTipoCompra,
+    receptorDireccion: c.receptorDireccion,
+    receptorComuna: c.receptorComuna,
+    receptorCiudad: c.receptorCiudad,
+    receptorGiro: c.receptorGiro,
+    receptorContacto: c.receptorContacto,
+    rutSolicita: c.rutSolicita,
+    dvSolicita: c.dvSolicita,
+    rutTransporte: c.rutTransporte,
+    dvTransporte: c.dvTransporte,
+    patente: c.patente,
+    rutChofer: c.rutChofer,
+    dvChofer: c.dvChofer,
+    nombreChofer: c.nombreChofer,
+    formaPago: c.formaPago,
+    pctDescuentoGlobal: c.pctDescuentoGlobal,
+    items: (itemsPorFactura.get(c.id) ?? []).map((i) => ({
+      nombre: i.nombre,
+      cantidad: i.cantidad,
+      unidad: i.unidad,
+      precio: i.precio,
+      pctDescuento: i.pctDescuento,
+    })),
+  }));
+
+  const resultados =
+    process.env.SIMULAR_SII === "true"
+      ? await automation.runBatchSimulado(facturasParaEmitir)
+      : await automation.runBatch(credencial.emisorRazonSocial, facturasParaEmitir);
+
+  let huboFallo = false;
+  for (let i = 0; i < cabeceras.length; i++) {
+    const cabecera = cabeceras[i];
+    const resultado = resultados[i];
+    if (resultado.exito) {
+      await db
+        .update(facturas)
+        .set({ status: "success", folio: resultado.folio ?? null, pdfPath: resultado.pdfPath, updatedAt: new Date() })
+        .where(eq(facturas.id, cabecera.id));
+    } else {
+      huboFallo = true;
+      await db
+        .update(facturas)
+        .set({ status: "failed", errorMessage: resultado.error, updatedAt: new Date() })
+        .where(eq(facturas.id, cabecera.id));
+    }
+  }
+
+  await db
+    .update(batches)
+    .set({ status: huboFallo ? "failed" : "done", finishedAt: new Date() })
+    .where(eq(batches.id, batch.id));
+
+  const exitosas = resultados.filter((r) => r.exito).length;
+  const fallidas = resultados.length - exitosas;
+
+  await db.insert(auditEvents).values({
+    userId: batch.userId,
+    actorEmail: "sistema",
+    tipo: "archivo_procesado",
+    entidadId: batch.id,
+    razonSocialSnapshot: credencial.emisorRazonSocial,
+    rutSnapshot: credencial.emisorRut,
+    descripcion: `Procesó "${batch.csvFilename}": ${exitosas} factura${exitosas === 1 ? "" : "s"} exitosa${exitosas === 1 ? "" : "s"}, ${fallidas} fallida${fallidas === 1 ? "" : "s"}`,
+    detalle: { csvFilename: batch.csvFilename, exitosas, fallidas },
+  });
+}
+
 async function claimNextCredentialDiscovery() {
   return db.transaction(async (tx) => {
     const rows = await tx
@@ -160,7 +267,7 @@ async function processCredentialDiscovery(credencial: typeof schema.siiCredentia
 
 async function tick() {
   try {
-    const batch = await claimNextBatch();
+    const batch = await claimNextBatch("boleta");
     if (batch) {
       console.log(`Procesando batch ${batch.id}`);
       await processBatch(batch);
@@ -168,6 +275,17 @@ async function tick() {
     }
   } catch (err) {
     console.error("Error procesando batch:", err);
+  }
+
+  try {
+    const batch = await claimNextBatch("factura");
+    if (batch) {
+      console.log(`Procesando batch de facturas ${batch.id}`);
+      await processFacturaBatch(batch);
+      console.log(`Batch de facturas ${batch.id} terminado`);
+    }
+  } catch (err) {
+    console.error("Error procesando batch de facturas:", err);
   }
 
   try {

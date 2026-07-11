@@ -1,0 +1,4 @@
+RutContribuyente;FacturaRef;ReceptorRut;ReceptorRazonSocial;TipoCompra;ReceptorDireccion;ReceptorComuna;ReceptorCiudad;ReceptorGiro;ReceptorContacto;RutSolicita;RutTransporte;Patente;RutChofer;NombreChofer;FormaPago;PctDescuentoGlobal;NombreProducto;Cantidad;Unidad;Precio;PctDescuentoItem
+77.227.081-K;F-001;76.123.456-7;Empresa Cliente Uno SpA;del_giro;Av. Providencia 1234;Providencia;Santiago;Comercio al por menor;Juan Pérez;;;;;;credito;0;Servicio de consultoría;1;UN;150000;0
+77.227.081-K;F-002;76.987.654-3;Comercial Dos Ltda;del_giro;Los Leones 500;Ñuñoa;Santiago;Venta de insumos;María López;;;;;;contado;0;Producto A;10;UN;5000;0
+77.227.081-K;F-002;76.987.654-3;Comercial Dos Ltda;del_giro;Los Leones 500;Ñuñoa;Santiago;Venta de insumos;María López;;;;;;contado;0;Producto B;5;UN;8000;10

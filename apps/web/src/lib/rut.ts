@@ -21,3 +21,9 @@ export function validarRut(rutCompleto: string): boolean {
 
   return calcularDV(cuerpo) === dv;
 }
+
+/** Separa un RUT en cuerpo y dígito verificador (ej. "12.345.678-9" → {rut: "12345678", dv: "9"}). */
+export function splitRut(rutCompleto: string): { rut: string; dv: string } {
+  const limpio = rutCompleto.replace(/[.\-\s]/g, "").toUpperCase();
+  return { rut: limpio.slice(0, -1), dv: limpio.slice(-1) };
+}

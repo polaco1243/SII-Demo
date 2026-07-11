@@ -1,0 +1,967 @@
+{
+  "id": "e7d920ba-0e6b-44d0-a815-8a9007138dce",
+  "prevId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.audit_events": {
+      "name": "audit_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_email": {
+          "name": "actor_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "audit_event_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entidad_id": {
+          "name": "entidad_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "razon_social_snapshot": {
+          "name": "razon_social_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rut_snapshot": {
+          "name": "rut_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "descripcion": {
+          "name": "descripcion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "detalle": {
+          "name": "detalle",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "audit_events_user_id_users_id_fk": {
+          "name": "audit_events_user_id_users_id_fk",
+          "tableFrom": "audit_events",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.batches": {
+      "name": "batches",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sii_credential_id": {
+          "name": "sii_credential_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo_documento": {
+          "name": "tipo_documento",
+          "type": "tipo_documento",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'boleta'"
+        },
+        "csv_filename": {
+          "name": "csv_filename",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "batch_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "finished_at": {
+          "name": "finished_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "batches_user_id_users_id_fk": {
+          "name": "batches_user_id_users_id_fk",
+          "tableFrom": "batches",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "batches_sii_credential_id_sii_credentials_id_fk": {
+          "name": "batches_sii_credential_id_sii_credentials_id_fk",
+          "tableFrom": "batches",
+          "tableTo": "sii_credentials",
+          "columnsFrom": [
+            "sii_credential_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.boletas": {
+      "name": "boletas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "batch_id": {
+          "name": "batch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rut_contribuyente": {
+          "name": "rut_contribuyente",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nombre_cliente": {
+          "name": "nombre_cliente",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rut_cliente1": {
+          "name": "rut_cliente1",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "monto": {
+          "name": "monto",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo_boleta": {
+          "name": "tipo_boleta",
+          "type": "tipo_boleta",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metodo_pago": {
+          "name": "metodo_pago",
+          "type": "metodo_pago",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "con_receptor": {
+          "name": "con_receptor",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "receptor_rut": {
+          "name": "receptor_rut",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "receptor_nombre": {
+          "name": "receptor_nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "receptor_direccion": {
+          "name": "receptor_direccion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "receptor_email": {
+          "name": "receptor_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "receptor_telefono": {
+          "name": "receptor_telefono",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "con_detalle": {
+          "name": "con_detalle",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "detalle": {
+          "name": "detalle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "boleta_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "pdf_path": {
+          "name": "pdf_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "boletas_batch_id_batches_id_fk": {
+          "name": "boletas_batch_id_batches_id_fk",
+          "tableFrom": "boletas",
+          "tableTo": "batches",
+          "columnsFrom": [
+            "batch_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.factura_items": {
+      "name": "factura_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "factura_id": {
+          "name": "factura_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "orden": {
+          "name": "orden",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cantidad": {
+          "name": "cantidad",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unidad": {
+          "name": "unidad",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "precio": {
+          "name": "precio",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pct_descuento": {
+          "name": "pct_descuento",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "subtotal": {
+          "name": "subtotal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "factura_items_factura_id_facturas_id_fk": {
+          "name": "factura_items_factura_id_facturas_id_fk",
+          "tableFrom": "factura_items",
+          "tableTo": "facturas",
+          "columnsFrom": [
+            "factura_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.facturas": {
+      "name": "facturas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "batch_id": {
+          "name": "batch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "factura_ref": {
+          "name": "factura_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rut_contribuyente": {
+          "name": "rut_contribuyente",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receptor_rut": {
+          "name": "receptor_rut",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receptor_dv": {
+          "name": "receptor_dv",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receptor_razon_social": {
+          "name": "receptor_razon_social",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receptor_tipo_compra": {
+          "name": "receptor_tipo_compra",
+          "type": "tipo_compra",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'del_giro'"
+        },
+        "receptor_direccion": {
+          "name": "receptor_direccion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receptor_comuna": {
+          "name": "receptor_comuna",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receptor_ciudad": {
+          "name": "receptor_ciudad",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "receptor_giro": {
+          "name": "receptor_giro",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receptor_contacto": {
+          "name": "receptor_contacto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rut_solicita": {
+          "name": "rut_solicita",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dv_solicita": {
+          "name": "dv_solicita",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rut_transporte": {
+          "name": "rut_transporte",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dv_transporte": {
+          "name": "dv_transporte",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "patente": {
+          "name": "patente",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rut_chofer": {
+          "name": "rut_chofer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dv_chofer": {
+          "name": "dv_chofer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nombre_chofer": {
+          "name": "nombre_chofer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "forma_pago": {
+          "name": "forma_pago",
+          "type": "forma_pago_factura",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'credito'"
+        },
+        "pct_descuento_global": {
+          "name": "pct_descuento_global",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "monto_descuento_global": {
+          "name": "monto_descuento_global",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "monto_neto": {
+          "name": "monto_neto",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "monto_total": {
+          "name": "monto_total",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "status": {
+          "name": "status",
+          "type": "boleta_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "folio": {
+          "name": "folio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pdf_path": {
+          "name": "pdf_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "facturas_batch_id_batches_id_fk": {
+          "name": "facturas_batch_id_batches_id_fk",
+          "tableFrom": "facturas",
+          "tableTo": "batches",
+          "columnsFrom": [
+            "batch_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sii_credentials": {
+      "name": "sii_credentials",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rut": {
+          "name": "rut",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "clave_encrypted": {
+          "name": "clave_encrypted",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "emisor": {
+          "name": "emisor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "emisor_rut": {
+          "name": "emisor_rut",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "emisor_razon_social": {
+          "name": "emisor_razon_social",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "emisores_disponibles": {
+          "name": "emisores_disponibles",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "credential_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pendiente'"
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "activa": {
+          "name": "activa",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sii_credentials_user_id_users_id_fk": {
+          "name": "sii_credentials_user_id_users_id_fk",
+          "tableFrom": "sii_credentials",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.audit_event_type": {
+      "name": "audit_event_type",
+      "schema": "public",
+      "values": [
+        "credencial_agregada",
+        "credencial_confirmada",
+        "credencial_eliminada",
+        "credencial_clave_actualizada",
+        "csv_subido",
+        "batch_confirmado",
+        "batch_cancelado",
+        "boleta_reintentada",
+        "factura_reintentada",
+        "archivo_procesado"
+      ]
+    },
+    "public.batch_status": {
+      "name": "batch_status",
+      "schema": "public",
+      "values": [
+        "borrador",
+        "pending",
+        "running",
+        "done",
+        "failed"
+      ]
+    },
+    "public.boleta_status": {
+      "name": "boleta_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "success",
+        "failed"
+      ]
+    },
+    "public.credential_status": {
+      "name": "credential_status",
+      "schema": "public",
+      "values": [
+        "pendiente",
+        "descubriendo",
+        "pendiente_seleccion",
+        "lista",
+        "error"
+      ]
+    },
+    "public.forma_pago_factura": {
+      "name": "forma_pago_factura",
+      "schema": "public",
+      "values": [
+        "contado",
+        "credito",
+        "sin_costo"
+      ]
+    },
+    "public.metodo_pago": {
+      "name": "metodo_pago",
+      "schema": "public",
+      "values": [
+        "debito",
+        "credito",
+        "efectivo",
+        "otro",
+        "transferencia"
+      ]
+    },
+    "public.tipo_boleta": {
+      "name": "tipo_boleta",
+      "schema": "public",
+      "values": [
+        "exenta",
+        "afecta"
+      ]
+    },
+    "public.tipo_compra": {
+      "name": "tipo_compra",
+      "schema": "public",
+      "values": [
+        "del_giro",
+        "supermercados",
+        "bienes_raices",
+        "activo_fijo",
+        "iva_uso_comun",
+        "iva_no_recuperable",
+        "no_corresponde"
+      ]
+    },
+    "public.tipo_documento": {
+      "name": "tipo_documento",
+      "schema": "public",
+      "values": [
+        "boleta",
+        "factura"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

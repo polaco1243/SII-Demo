@@ -64,6 +64,20 @@
       "when": 1751400000000,
       "tag": "0008_add_transferencia",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783729469174,
+      "tag": "0009_thankful_midnight",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783729469175,
+      "tag": "0010_rls_facturas",
+      "breakpoints": true
     }
   ]
 }

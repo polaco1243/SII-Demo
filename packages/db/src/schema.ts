@@ -12,6 +12,17 @@ export const credentialStatus = pgEnum("credential_status", [
 ]);
 export const tipoBoletaEnum = pgEnum("tipo_boleta", ["exenta", "afecta"]);
 export const metodoPagoEnum = pgEnum("metodo_pago", ["debito", "credito", "efectivo", "otro", "transferencia"]);
+export const tipoDocumentoEnum = pgEnum("tipo_documento", ["boleta", "factura"]);
+export const tipoCompraEnum = pgEnum("tipo_compra", [
+  "del_giro",
+  "supermercados",
+  "bienes_raices",
+  "activo_fijo",
+  "iva_uso_comun",
+  "iva_no_recuperable",
+  "no_corresponde",
+]);
+export const formaPagoFacturaEnum = pgEnum("forma_pago_factura", ["contado", "credito", "sin_costo"]);
 export const auditEventType = pgEnum("audit_event_type", [
   "credencial_agregada",
   "credencial_confirmada",
@@ -21,6 +32,7 @@ export const auditEventType = pgEnum("audit_event_type", [
   "batch_confirmado",
   "batch_cancelado",
   "boleta_reintentada",
+  "factura_reintentada",
   "archivo_procesado",
 ]);
 
@@ -52,6 +64,7 @@ export const batches = pgTable("batches", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   siiCredentialId: uuid("sii_credential_id").notNull().references(() => siiCredentials.id, { onDelete: "restrict" }),
+  tipoDocumento: tipoDocumentoEnum("tipo_documento").notNull().default("boleta"),
   csvFilename: text("csv_filename").notNull(),
   status: batchStatus("status").notNull().default("pending"),
   errorMessage: text("error_message"),
@@ -88,6 +101,59 @@ export const boletas = pgTable("boletas", {
   errorMessage: text("error_message"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const facturas = pgTable("facturas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  batchId: uuid("batch_id").notNull().references(() => batches.id, { onDelete: "cascade" }),
+  facturaRef: text("factura_ref").notNull(),
+
+  rutContribuyente: text("rut_contribuyente").notNull(),
+
+  receptorRut: text("receptor_rut").notNull(),
+  receptorDv: text("receptor_dv").notNull(),
+  receptorRazonSocial: text("receptor_razon_social").notNull(),
+  receptorTipoCompra: tipoCompraEnum("receptor_tipo_compra").notNull().default("del_giro"),
+  receptorDireccion: text("receptor_direccion").notNull(),
+  receptorComuna: text("receptor_comuna").notNull(),
+  receptorCiudad: text("receptor_ciudad"),
+  receptorGiro: text("receptor_giro").notNull(),
+  receptorContacto: text("receptor_contacto"),
+  rutSolicita: text("rut_solicita"),
+  dvSolicita: text("dv_solicita"),
+
+  rutTransporte: text("rut_transporte"),
+  dvTransporte: text("dv_transporte"),
+  patente: text("patente"),
+  rutChofer: text("rut_chofer"),
+  dvChofer: text("dv_chofer"),
+  nombreChofer: text("nombre_chofer"),
+
+  formaPago: formaPagoFacturaEnum("forma_pago").notNull().default("credito"),
+  pctDescuentoGlobal: integer("pct_descuento_global").notNull().default(0),
+  montoDescuentoGlobal: integer("monto_descuento_global").notNull().default(0),
+  montoNeto: integer("monto_neto").notNull().default(0),
+  montoTotal: integer("monto_total").notNull().default(0),
+
+  status: boletaStatus("status").notNull().default("pending"),
+  folio: text("folio"),
+  pdfPath: text("pdf_path"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const facturaItems = pgTable("factura_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  facturaId: uuid("factura_id").notNull().references(() => facturas.id, { onDelete: "cascade" }),
+  orden: integer("orden").notNull().default(0),
+  nombre: text("nombre").notNull(),
+  cantidad: integer("cantidad").notNull(),
+  unidad: text("unidad"),
+  precio: integer("precio").notNull(),
+  pctDescuento: integer("pct_descuento").notNull().default(0),
+  subtotal: integer("subtotal").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // Bitácora de auditoría: append-only, nunca se actualiza ni se borra.
@@ -127,4 +193,13 @@ export const batchesRelations = relations(batches, ({ one, many }) => ({
 
 export const boletasRelations = relations(boletas, ({ one }) => ({
   batch: one(batches, { fields: [boletas.batchId], references: [batches.id] }),
+}));
+
+export const facturasRelations = relations(facturas, ({ one, many }) => ({
+  batch: one(batches, { fields: [facturas.batchId], references: [batches.id] }),
+  items: many(facturaItems),
+}));
+
+export const facturaItemsRelations = relations(facturaItems, ({ one }) => ({
+  factura: one(facturas, { fields: [facturaItems.facturaId], references: [facturas.id] }),
 }));

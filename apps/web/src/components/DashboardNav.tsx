@@ -35,6 +35,17 @@ const ITEMS: NavItem[] = [
     ),
   },
   {
+    href: "/dashboard/facturas",
+    label: "Facturas",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+        <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
+        <path d="M14 2v5h5" />
+        <path d="M8 13h8M8 17h5" />
+      </svg>
+    ),
+  },
+  {
     href: "/dashboard/credenciales",
     label: "Credenciales",
     icon: (
