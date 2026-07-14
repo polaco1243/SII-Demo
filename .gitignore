@@ -9,3 +9,7 @@ logs/
 *.log
 .turbo/
 .gstack/
+
+# generado
+graphify-out/
+apps/worker/graphify-out/
